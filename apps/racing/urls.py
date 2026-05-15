@@ -1,0 +1,106 @@
+from django.urls import path
+
+from apps.racing.views import (
+    CircuitDetailAPIView,
+    CircuitListCreateAPIView,
+    DriverDetailAPIView,
+    DriverListCreateAPIView,
+    QualifyingResultDetailAPIView,
+    QualifyingResultListCreateAPIView,
+    RaceDetailAPIView,
+    RaceListCreateAPIView,
+    RaceResultDetailAPIView,
+    RaceResultListCreateAPIView,
+    SeasonDetailAPIView,
+    SeasonListCreateAPIView,
+    SprintResultDetailAPIView,
+    SprintResultListCreateAPIView,
+    TeamDetailAPIView,
+    TeamListCreateAPIView,
+)
+
+
+app_name = "racing"
+
+urlpatterns = [
+    path(
+        "seasons/",
+        SeasonListCreateAPIView.as_view(),
+        name="season-list-create",
+    ),
+    path(
+        "seasons/<uuid:pk>/",
+        SeasonDetailAPIView.as_view(),
+        name="season-detail",
+    ),
+    path(
+        "teams/",
+        TeamListCreateAPIView.as_view(),
+        name="team-list-create",
+    ),
+    path(
+        "teams/<uuid:pk>/",
+        TeamDetailAPIView.as_view(),
+        name="team-detail",
+    ),
+    path(
+        "drivers/",
+        DriverListCreateAPIView.as_view(),
+        name="driver-list-create",
+    ),
+    path(
+        "drivers/<uuid:pk>/",
+        DriverDetailAPIView.as_view(),
+        name="driver-detail",
+    ),
+    path(
+        "circuits/",
+        CircuitListCreateAPIView.as_view(),
+        name="circuit-list-create",
+    ),
+    path(
+        "circuits/<uuid:pk>/",
+        CircuitDetailAPIView.as_view(),
+        name="circuit-detail",
+    ),
+    path(
+        "races/",
+        RaceListCreateAPIView.as_view(),
+        name="race-list-create",
+    ),
+    path(
+        "races/<uuid:pk>/",
+        RaceDetailAPIView.as_view(),
+        name="race-detail",
+    ),
+        path(
+        "race-results/",
+        RaceResultListCreateAPIView.as_view(),
+        name="race-result-list-create",
+    ),
+    path(
+        "race-results/<uuid:pk>/",
+        RaceResultDetailAPIView.as_view(),
+        name="race-result-detail",
+    ),
+    path(
+        "qualifying-results/",
+        QualifyingResultListCreateAPIView.as_view(),
+        name="qualifying-result-list-create",
+    ),
+    path(
+        "qualifying-results/<uuid:pk>/",
+        QualifyingResultDetailAPIView.as_view(),
+        name="qualifying-result-detail",
+    ),
+    path(
+        "sprint-results/",
+        SprintResultListCreateAPIView.as_view(),
+        name="sprint-result-list-create",
+    ),
+    path(
+        "sprint-results/<uuid:pk>/",
+        SprintResultDetailAPIView.as_view(),
+        name="sprint-result-detail",
+    ),
+]
