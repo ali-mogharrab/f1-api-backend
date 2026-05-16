@@ -2,6 +2,7 @@ from django.db import IntegrityError
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
 
 from apps.core.responses import error_response, success_response
 from apps.users.models import FavoriteDriver, FavoriteRace, FavoriteTeam
@@ -18,6 +19,13 @@ from apps.users.serializers import (
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["users"],
+        summary="Register a new user",
+        description="Create a new user account. A user profile is created automatically.",
+        request=RegisterSerializer,
+        responses={201: UserSerializer},
+    )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
 
@@ -40,6 +48,12 @@ class RegisterAPIView(APIView):
 class CurrentUserAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        tags=["users"],
+        summary="Get current authenticated user",
+        description="Return the currently authenticated user's account and profile information.",
+        responses={200: UserSerializer},
+    )
     def get(self, request):
         serializer = UserSerializer(
             request.user,
@@ -56,6 +70,11 @@ class CurrentUserAPIView(APIView):
 class UserProfileAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        tags=["users"],
+        summary="Get current user's profile",
+        responses={200: UserProfileSerializer},
+    )
     def get(self, request):
         serializer = UserProfileSerializer(
             request.user.profile,
@@ -68,6 +87,12 @@ class UserProfileAPIView(APIView):
             status_code=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        tags=["users"],
+        summary="Update current user's profile",
+        request=UserProfileSerializer,
+        responses={200: UserProfileSerializer},
+    )
     def patch(self, request):
         serializer = UserProfileSerializer(
             request.user.profile,
@@ -320,5 +345,61 @@ class FavoriteRaceDetailAPIView(APIView):
         return success_response(
             data=None,
             message="Favorite race removed successfully.",
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class UserDashboardAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        favorite_drivers = (
+            FavoriteDriver.objects.filter(user=request.user)
+            .select_related("driver", "driver__current_team")
+            .order_by("-created_at")
+        )
+
+        favorite_teams = (
+            FavoriteTeam.objects.filter(user=request.user)
+            .select_related("team")
+            .order_by("-created_at")
+        )
+
+        favorite_races = (
+            FavoriteRace.objects.filter(user=request.user)
+            .select_related("race", "race__season", "race__circuit")
+            .order_by("-created_at")
+        )
+
+        data = {
+            "user": UserSerializer(
+                request.user,
+                context={"request": request},
+            ).data,
+            "favorites_summary": {
+                "drivers_count": favorite_drivers.count(),
+                "teams_count": favorite_teams.count(),
+                "races_count": favorite_races.count(),
+            },
+            "recent_favorite_drivers": FavoriteDriverSerializer(
+                favorite_drivers[:5],
+                many=True,
+                context={"request": request},
+            ).data,
+            "recent_favorite_teams": FavoriteTeamSerializer(
+                favorite_teams[:5],
+                many=True,
+                context={"request": request},
+            ).data,
+            "recent_favorite_races": FavoriteRaceSerializer(
+                favorite_races[:5],
+                many=True,
+                context={"request": request},
+            ).data,
+        }
+
+        return success_response(
+            data=data,
+            message="Dashboard retrieved successfully.",
             status_code=status.HTTP_200_OK,
         )

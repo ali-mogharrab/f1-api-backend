@@ -14,6 +14,7 @@ from apps.users.views import (
     FavoriteTeamDetailAPIView,
     FavoriteTeamListCreateAPIView,
     RegisterAPIView,
+    UserDashboardAPIView,
     UserProfileAPIView,
 )
 
@@ -35,6 +36,11 @@ urlpatterns = [
         "profile/",
         UserProfileAPIView.as_view(),
         name="profile",
+    ),
+    path(
+        "dashboard/",
+        UserDashboardAPIView.as_view(),
+        name="dashboard",
     ),
     path(
         "favorites/drivers/",
