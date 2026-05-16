@@ -392,3 +392,39 @@ class UsersAPITests(APITestCase):
         self.assertFalse(response.data["success"])
         self.assertIn("race", response.data["errors"])
         self.assertEqual(FavoriteRace.objects.count(), 1)
+
+    def test_authenticated_user_can_view_dashboard(self):
+        FavoriteDriver.objects.create(
+            user=self.user,
+            driver=self.driver,
+        )
+        FavoriteTeam.objects.create(
+            user=self.user,
+            team=self.team,
+        )
+        FavoriteRace.objects.create(
+            user=self.user,
+            race=self.race,
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+        url = reverse("users:dashboard")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["data"]["user"]["username"], "ali")
+        self.assertEqual(response.data["data"]["favorites_summary"]["drivers_count"], 1)
+        self.assertEqual(response.data["data"]["favorites_summary"]["teams_count"], 1)
+        self.assertEqual(response.data["data"]["favorites_summary"]["races_count"], 1)
+        self.assertEqual(
+            response.data["data"]["recent_favorite_drivers"][0]["driver_name"],
+            "Max Verstappen",
+        )
+
+    def test_anonymous_user_cannot_view_dashboard(self):
+        url = reverse("users:dashboard")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
