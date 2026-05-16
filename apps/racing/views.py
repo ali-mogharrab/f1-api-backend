@@ -1,3 +1,7 @@
+from django.utils import timezone
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from apps.core.views import BaseListCreateAPIView, BaseRetrieveUpdateDestroyAPIView
 
 from apps.racing.models import (
@@ -322,3 +326,94 @@ class SprintResultDetailAPIView(BaseRetrieveUpdateDestroyAPIView):
             "driver",
             "team",
         )
+
+
+class CurrentSeasonAPIView(APIView):
+    def get(self, request):
+        season = Season.objects.filter(is_current=True).first()
+
+        if season is None:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Current season not found.",
+                    "errors": None,
+                },
+                status=404,
+            )
+
+        serializer = SeasonSerializer(
+            season,
+            context={"request": request},
+        )
+
+        return Response(serializer.data)
+
+
+class UpcomingRaceAPIView(APIView):
+    def get(self, request):
+        today = timezone.localdate()
+
+        race = (
+            Race.objects.select_related("season", "circuit")
+            .filter(
+                race_date__gte=today,
+                status=Race.RaceStatus.SCHEDULED,
+            )
+            .order_by("race_date", "race_time")
+            .first()
+        )
+
+        if race is None:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Upcoming race not found.",
+                    "errors": None,
+                },
+                status=404,
+            )
+
+        serializer = RaceSerializer(
+            race,
+            context={"request": request},
+        )
+
+        return Response(serializer.data)
+
+
+class LatestRaceAPIView(APIView):
+    def get(self, request):
+        today = timezone.localdate()
+
+        race = (
+            Race.objects.select_related("season", "circuit")
+            .filter(
+                race_date__lte=today,
+            )
+            .exclude(
+                status__in=[
+                    Race.RaceStatus.CANCELLED,
+                    Race.RaceStatus.POSTPONED,
+                ]
+            )
+            .order_by("-race_date", "-race_time")
+            .first()
+        )
+
+        if race is None:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Latest race not found.",
+                    "errors": None,
+                },
+                status=404,
+            )
+
+        serializer = RaceSerializer(
+            race,
+            context={"request": request},
+        )
+
+        return Response(serializer.data)

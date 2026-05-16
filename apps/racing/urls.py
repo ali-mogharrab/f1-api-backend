@@ -3,8 +3,10 @@ from django.urls import path
 from apps.racing.views import (
     CircuitDetailAPIView,
     CircuitListCreateAPIView,
+    CurrentSeasonAPIView,
     DriverDetailAPIView,
     DriverListCreateAPIView,
+    LatestRaceAPIView,
     QualifyingResultDetailAPIView,
     QualifyingResultListCreateAPIView,
     RaceDetailAPIView,
@@ -17,12 +19,28 @@ from apps.racing.views import (
     SprintResultListCreateAPIView,
     TeamDetailAPIView,
     TeamListCreateAPIView,
+    UpcomingRaceAPIView,
 )
 
 
 app_name = "racing"
 
 urlpatterns = [
+    path(
+        "seasons/current/",
+        CurrentSeasonAPIView.as_view(),
+        name="current-season",
+    ),
+    path(
+        "races/upcoming/",
+        UpcomingRaceAPIView.as_view(),
+        name="upcoming-race",
+    ),
+    path(
+        "races/latest/",
+        LatestRaceAPIView.as_view(),
+        name="latest-race",
+    ),
     path(
         "seasons/",
         SeasonListCreateAPIView.as_view(),
