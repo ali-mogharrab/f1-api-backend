@@ -3,6 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from apps.racing.models import (
     Circuit,
@@ -59,7 +60,7 @@ class RacingAPITests(APITestCase):
             name="Monaco Grand Prix",
             official_name="Formula 1 Grand Prix de Monaco 2026",
             round_number=8,
-            race_date="2026-06-07",
+            race_date=timezone.localdate() + timezone.timedelta(days=7),
             race_time="15:00:00",
             status=Race.RaceStatus.SCHEDULED,
         )
@@ -256,3 +257,45 @@ class RacingAPITests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["points"], "8.00")
         self.assertEqual(response.data["results"][0]["race_name"], "Monaco Grand Prix")
+
+    def test_current_season_endpoint(self):
+        url = reverse("racing:current-season")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["year"], 2026)
+        self.assertTrue(response.data["is_current"])
+
+    def test_upcoming_race_endpoint(self):
+        url = reverse("racing:upcoming-race")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["name"], "Monaco Grand Prix")
+
+
+    def test_latest_race_endpoint_returns_404_when_no_past_race_exists(self):
+        url = reverse("racing:latest-race")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data["success"])
+
+    def test_latest_race_endpoint(self):
+        past_race = Race.objects.create(
+            season=self.season,
+            circuit=self.circuit,
+            name="Past Grand Prix",
+            official_name="Formula 1 Past Grand Prix 2026",
+            round_number=9,
+            race_date=timezone.localdate() - timezone.timedelta(days=7),
+            race_time="15:00:00",
+            status=Race.RaceStatus.COMPLETED,
+        )
+
+        url = reverse("racing:latest-race")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], str(past_race.id))
+        self.assertEqual(response.data["name"], "Past Grand Prix")
