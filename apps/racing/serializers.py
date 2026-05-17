@@ -306,6 +306,14 @@ class QualifyingResultSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate(self, attrs):
+        driver = attrs.get("driver", getattr(self.instance, "driver", None))
+        team = attrs.get("team", getattr(self.instance, "team", None))
+
+        validate_driver_team_match(driver, team)
+
+        return attrs
+
 
 class SprintResultSerializer(serializers.ModelSerializer):
     race_name = serializers.CharField(source="race.name", read_only=True)
