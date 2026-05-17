@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.core.models import BaseModel
@@ -222,6 +223,22 @@ class Race(BaseModel):
             ),
         ]
 
+    def clean(self):
+        errors = {}
+
+        if self.qualifying_date and self.qualifying_date > self.race_date:
+            errors["qualifying_date"] = "Qualifying date cannot be after race date."
+
+        if self.sprint_date and self.sprint_date > self.race_date:
+            errors["sprint_date"] = "Sprint date cannot be after race date."
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
     def __str__(self):
         return f"{self.season.year} - Round {self.round_number}: {self.name}"
 
