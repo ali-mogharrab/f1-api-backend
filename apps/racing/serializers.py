@@ -361,3 +361,19 @@ class SprintResultSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def validate(self, attrs):
+        driver = attrs.get("driver", getattr(self.instance, "driver", None))
+        team = attrs.get("team", getattr(self.instance, "team", None))
+        points = attrs.get("points", getattr(self.instance, "points", 0))
+
+        validate_driver_team_match(driver, team)
+
+        if points < 0:
+            raise serializers.ValidationError(
+                {
+                    "points": "Points cannot be negative."
+                }
+            )
+
+        return attrs
