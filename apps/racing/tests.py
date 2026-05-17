@@ -35,6 +35,17 @@ class RacingAPITests(APITestCase):
             is_active=True,
         )
 
+        self.other_team = Team.objects.create(
+            name="Ferrari",
+            official_name="Scuderia Ferrari",
+            country="Italy",
+            base_location="Maranello, Italy",
+            power_unit="Ferrari",
+            first_team_entry=1950,
+            world_championships=16,
+            is_active=True,
+        )
+
         self.driver = Driver.objects.create(
             first_name="Max",
             last_name="Verstappen",
@@ -78,8 +89,8 @@ class RacingAPITests(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["count"], 1)
-        self.assertEqual(response.data["results"][0]["name"], "Red Bull Racing")
+        self.assertEqual(response.data["count"], 2)
+        self.assertEqual(response.data["results"][0]["name"], "Ferrari")
 
     def test_driver_detail(self):
         url = reverse(
@@ -299,3 +310,95 @@ class RacingAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], str(past_race.id))
         self.assertEqual(response.data["name"], "Past Grand Prix")
+
+    def test_admin_cannot_create_race_with_qualifying_after_race_date(self):
+        User = get_user_model()
+
+        admin_user = User.objects.create_user(
+            username="race-admin",
+            email="race-admin@example.com",
+            password="strong-test-password",
+            is_staff=True,
+        )
+
+        self.client.force_authenticate(user=admin_user)
+
+        url = reverse("racing:race-list-create")
+        payload = {
+            "season": str(self.season.id),
+            "circuit": str(self.circuit.id),
+            "name": "Invalid Grand Prix",
+            "official_name": "Invalid Grand Prix",
+            "round_number": 20,
+            "race_date": "2026-06-07",
+            "qualifying_date": "2026-06-08",
+            "status": Race.RaceStatus.SCHEDULED,
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("qualifying_date", response.data["errors"])
+
+    def test_admin_cannot_create_race_result_with_wrong_team(self):
+        User = get_user_model()
+
+        admin_user = User.objects.create_user(
+            username="result-admin",
+            email="result-admin@example.com",
+            password="strong-test-password",
+            is_staff=True,
+        )
+
+        self.client.force_authenticate(user=admin_user)
+
+        url = reverse("racing:race-result-list-create")
+        payload = {
+            "race": str(self.race.id),
+            "driver": str(self.driver.id),
+            "team": str(self.other_team.id),
+            "position": 1,
+            "classified_position": "1",
+            "grid_position": 1,
+            "laps_completed": 78,
+            "points": "25.00",
+            "status": RaceResult.ResultStatus.CLASSIFIED,
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("team", response.data["errors"])
+
+    def test_admin_cannot_create_race_result_with_negative_points(self):
+        User = get_user_model()
+
+        admin_user = User.objects.create_user(
+            username="points-admin",
+            email="points-admin@example.com",
+            password="strong-test-password",
+            is_staff=True,
+        )
+
+        self.client.force_authenticate(user=admin_user)
+
+        url = reverse("racing:race-result-list-create")
+        payload = {
+            "race": str(self.race.id),
+            "driver": str(self.driver.id),
+            "team": str(self.team.id),
+            "position": 1,
+            "classified_position": "1",
+            "grid_position": 1,
+            "laps_completed": 78,
+            "points": "-1.00",
+            "status": RaceResult.ResultStatus.CLASSIFIED,
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("points", response.data["errors"])
