@@ -432,3 +432,40 @@ class ContentAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["id"], str(featured_article.id))
+
+    def test_admin_cannot_create_published_article_without_published_at(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        url = reverse("content:article-list-create")
+        payload = {
+            "title": "Invalid Published Article",
+            "summary": "Summary.",
+            "content": "Content.",
+            "category": str(self.category.id),
+            "status": Article.ArticleStatus.PUBLISHED,
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("published_at", response.data["errors"])
+
+    def test_admin_cannot_create_featured_draft_article(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        url = reverse("content:article-list-create")
+        payload = {
+            "title": "Invalid Featured Draft",
+            "summary": "Summary.",
+            "content": "Content.",
+            "category": str(self.category.id),
+            "status": Article.ArticleStatus.DRAFT,
+            "is_featured": True,
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("is_featured", response.data["errors"])
