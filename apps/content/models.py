@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.core.models import BaseModel
@@ -134,6 +135,18 @@ class Article(BaseModel):
             models.Index(fields=["is_featured"]),
         ]
 
+    def clean(self):
+        errors = {}
+
+        if self.status == self.ArticleStatus.PUBLISHED and self.published_at is None:
+            errors["published_at"] = "Published articles must have a published date."
+
+        if self.status != self.ArticleStatus.PUBLISHED and self.is_featured:
+            errors["is_featured"] = "Only published articles can be featured."
+
+        if errors:
+            raise ValidationError(errors)
+    
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = generate_unique_slug(
@@ -141,6 +154,7 @@ class Article(BaseModel):
                 source_field="title",
             )
 
+        self.full_clean()
         super().save(*args, **kwargs)
 
     def __str__(self):
