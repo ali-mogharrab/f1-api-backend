@@ -386,6 +386,24 @@ class QualifyingResult(BaseModel):
             ),
         ]
 
+    def clean(self):
+        errors = {}
+
+        if self.position is not None and self.position < 1:
+            errors["position"] = "Position must be greater than or equal to 1."
+
+        if self.team_id and self.driver_id and self.driver.current_team_id:
+            if self.driver.current_team_id != self.team_id:
+                errors["team"] = "Team must match the driver's current team."
+
+        if errors:
+            raise ValidationError(errors)
+
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.race} - Qualifying - {self.driver.full_name} - P{self.position}"
 
