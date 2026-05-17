@@ -144,3 +144,30 @@ class ArticleCreateUpdateSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def validate(self, attrs):
+        status = attrs.get("status", getattr(self.instance, "status", None))
+        published_at = attrs.get(
+            "published_at",
+            getattr(self.instance, "published_at", None),
+        )
+        is_featured = attrs.get(
+            "is_featured",
+            getattr(self.instance, "is_featured", False),
+        )
+
+        if status == Article.ArticleStatus.PUBLISHED and published_at is None:
+            raise serializers.ValidationError(
+                {
+                    "published_at": "Published articles must have a published date."
+                }
+            )
+
+        if status != Article.ArticleStatus.PUBLISHED and is_featured:
+            raise serializers.ValidationError(
+                {
+                    "is_featured": "Only published articles can be featured."
+                }
+            )
+
+        return attrs
