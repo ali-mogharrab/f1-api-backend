@@ -26,6 +26,17 @@ class StandingsAPITests(APITestCase):
             is_active=True,
         )
 
+        self.other_team = Team.objects.create(
+            name="Ferrari",
+            official_name="Scuderia Ferrari",
+            country="Italy",
+            base_location="Maranello, Italy",
+            power_unit="Ferrari",
+            first_team_entry=1950,
+            world_championships=16,
+            is_active=True,
+        )
+        
         self.driver = Driver.objects.create(
             first_name="Max",
             last_name="Verstappen",
@@ -188,3 +199,56 @@ class StandingsAPITests(APITestCase):
         self.assertEqual(response.data["data"]["team_name"], "Red Bull Racing")
         self.assertEqual(response.data["data"]["points"], "430.00")
         self.assertEqual(ConstructorStanding.objects.count(), 1)
+
+    def test_admin_cannot_create_driver_standing_with_wrong_team(self):
+        User = get_user_model()
+
+        admin_user = User.objects.create_user(
+            username="standing-admin",
+            email="standing-admin@example.com",
+            password="strong-test-password",
+            is_staff=True,
+        )
+
+        self.client.force_authenticate(user=admin_user)
+
+        url = reverse("standings:driver-standing-list-create")
+        payload = {
+            "season": str(self.season.id),
+            "driver": str(self.driver.id),
+            "team": str(self.other_team.id),
+            "position": 1,
+            "points": "275.00",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("team", response.data["errors"])
+
+    def test_admin_cannot_create_constructor_standing_with_negative_points(self):
+        User = get_user_model()
+
+        admin_user = User.objects.create_user(
+            username="constructor-validation-admin",
+            email="constructor-validation-admin@example.com",
+            password="strong-test-password",
+            is_staff=True,
+        )
+
+        self.client.force_authenticate(user=admin_user)
+
+        url = reverse("standings:constructor-standing-list-create")
+        payload = {
+            "season": str(self.season.id),
+            "team": str(self.team.id),
+            "position": 1,
+            "points": "-10.00",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("points", response.data["errors"])
