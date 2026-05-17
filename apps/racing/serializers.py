@@ -154,6 +154,33 @@ class RaceSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate(self, attrs):
+        race_date = attrs.get("race_date", getattr(self.instance, "race_date", None))
+        qualifying_date = attrs.get(
+            "qualifying_date",
+            getattr(self.instance, "qualifying_date", None),
+        )
+        sprint_date = attrs.get(
+            "sprint_date",
+            getattr(self.instance, "sprint_date", None),
+        )
+
+        if qualifying_date and race_date and qualifying_date > race_date:
+            raise serializers.ValidationError(
+                {
+                    "qualifying_date": "Qualifying date cannot be after race date."
+                }
+            )
+
+        if sprint_date and race_date and sprint_date > race_date:
+            raise serializers.ValidationError(
+                {
+                    "sprint_date": "Sprint date cannot be after race date."
+                }
+            )
+
+        return attrs
+
 
 class RaceResultSerializer(serializers.ModelSerializer):
     race_name = serializers.CharField(source="race.name", read_only=True)
