@@ -16,6 +16,20 @@ ALLOWED_HOSTS = config(
     cast=lambda value: [host.strip() for host in value.split(",")],
 )
 
+# CORS
+
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
+    cast=lambda value: [origin.strip() for origin in value.split(",")],
+)
+
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
+    cast=lambda value: [origin.strip() for origin in value.split(",")],
+)
+
 # Application definition
 
 DJANGO_APPS = [
@@ -31,6 +45,8 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "django_filters",
     "rest_framework_simplejwt",
+    "drf_spectacular",
+    "corsheaders",
 ]
 
 LOCAL_APPS = [
@@ -38,11 +54,13 @@ LOCAL_APPS = [
     "apps.users",
     "apps.racing",
     "apps.standings",
+    "apps.content",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -127,6 +145,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+AUTH_USER_MODEL = "users.User"
+
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
@@ -153,6 +173,25 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.DefaultPagination",
     "PAGE_SIZE": 20,
     "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Formula 1 API",
+    "DESCRIPTION": (
+        "A production-minded Formula 1 REST API built with Django REST Framework. "
+        "Includes racing data, standings, users, favorites, and editorial content."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": "/api/",
+    "TAGS": [
+        {"name": "users", "description": "Authentication, profiles, and favorites."},
+        {"name": "racing", "description": "Formula 1 seasons, teams, drivers, circuits, races, and results."},
+        {"name": "standings", "description": "Driver and constructor championship standings."},
+        {"name": "content", "description": "Categories, tags, and articles/news content."},
+    ],
 }
 
 SIMPLE_JWT = {
