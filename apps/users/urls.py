@@ -16,6 +16,9 @@ from apps.users.views import (
     RegisterAPIView,
     UserDashboardAPIView,
     UserProfileAPIView,
+    PasswordChangeView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
 )
 
 
@@ -86,5 +89,16 @@ urlpatterns = [
         "token/verify/",
         TokenVerifyView.as_view(),
         name="token-verify",
+    ),
+    path("password/change/", PasswordChangeView.as_view(), name="password-change"),
+    path(
+        "password/reset/",
+        PasswordResetRequestView.as_view(),
+        name="password-reset-request",
+    ),
+    path(
+        "password/reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="password-reset-confirm",
     ),
 ]

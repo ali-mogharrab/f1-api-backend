@@ -13,6 +13,9 @@ from apps.users.serializers import (
     RegisterSerializer,
     UserProfileSerializer,
     UserSerializer,
+    PasswordChangeSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
 )
 
 
@@ -42,6 +45,57 @@ class RegisterAPIView(APIView):
             errors=serializer.errors,
             message="Validation error.",
             status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return success_response(
+            message="Password changed successfully.",
+            data=None,
+        )
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return success_response(
+            message=(
+                "If an account with this email exists, "
+                "a password reset link has been sent."
+            ),
+            data=None,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return success_response(
+            message="Password has been reset successfully.",
+            data=None,
         )
 
 

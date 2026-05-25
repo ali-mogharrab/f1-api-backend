@@ -1,5 +1,12 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 from rest_framework import serializers
 
 from apps.users.models import FavoriteDriver, FavoriteRace, FavoriteTeam, UserProfile
@@ -85,6 +92,120 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=password,
             **validated_data,
         )
+
+        return user
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate_old_password(self, value):
+        user = self.context["request"].user
+
+        if not user.check_password(value):
+            raise serializers.ValidationError("Old password is incorrect.")
+
+        return value
+
+    def validate(self, attrs):
+        new_password = attrs["new_password"]
+        new_password_confirm = attrs["new_password_confirm"]
+
+        if new_password != new_password_confirm:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "Passwords do not match."}
+            )
+
+        validate_password(new_password, self.context["request"].user)
+
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+
+        return user
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.lower()
+
+    def save(self, **kwargs):
+        email = self.validated_data["email"]
+
+        users = User.objects.filter(email__iexact=email, is_active=True)
+
+        for user in users:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+
+            reset_url = (
+                f"{settings.FRONTEND_URL}/reset-password-confirm"
+                f"?uid={uid}&token={token}"
+            )
+
+            subject = "Reset your F1 account password"
+            message = (
+                "You requested a password reset for your F1 account.\n\n"
+                f"Click the link below to reset your password:\n\n"
+                f"{reset_url}\n\n"
+                "If you did not request this, you can ignore this email."
+            )
+
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField(write_only=True)
+    token = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        uid = attrs["uid"]
+        token = attrs["token"]
+        new_password = attrs["new_password"]
+        new_password_confirm = attrs["new_password_confirm"]
+
+        if new_password != new_password_confirm:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "Passwords do not match."}
+            )
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=user_id, is_active=True)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError(
+                {"token": "Invalid password reset link."}
+            )
+
+        if not default_token_generator.check_token(user, token):
+            raise serializers.ValidationError(
+                {"token": "Invalid or expired password reset link."}
+            )
+
+        validate_password(new_password, user)
+
+        attrs["user"] = user
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.validated_data["user"]
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
 
         return user
 

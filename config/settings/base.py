@@ -30,6 +30,15 @@ CSRF_TRUSTED_ORIGINS = config(
     cast=lambda value: [origin.strip() for origin in value.split(",")],
 )
 
+# forget password
+
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
+
+# Email
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "noreply@f1hub.com"
+
 # Application definition
 
 DJANGO_APPS = [
