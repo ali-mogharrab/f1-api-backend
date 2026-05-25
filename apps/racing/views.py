@@ -1,4 +1,5 @@
 from django.utils import timezone
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -329,6 +330,8 @@ class SprintResultDetailAPIView(BaseRetrieveUpdateDestroyAPIView):
 
 
 class CurrentSeasonAPIView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         season = Season.objects.filter(is_current=True).first()
 
@@ -351,6 +354,8 @@ class CurrentSeasonAPIView(APIView):
 
 
 class UpcomingRaceAPIView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         today = timezone.localdate()
 
@@ -383,6 +388,8 @@ class UpcomingRaceAPIView(APIView):
 
 
 class LatestRaceAPIView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         today = timezone.localdate()
 

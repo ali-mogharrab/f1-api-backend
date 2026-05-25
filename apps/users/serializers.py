@@ -3,10 +3,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.urls import reverse
-from django.utils.encoding import force_str
+from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.utils.encoding import force_bytes
 from rest_framework import serializers
 
 from apps.users.models import FavoriteDriver, FavoriteRace, FavoriteTeam, UserProfile
@@ -83,6 +81,16 @@ class RegisterSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+
+    def validate_email(self, value):
+        email = User.objects.normalize_email(value).lower()
+
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError(
+                "A user with this email already exists."
+            )
+
+        return email
 
     def create(self, validated_data):
         validated_data.pop("password_confirm")
@@ -187,10 +195,10 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         try:
             user_id = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=user_id, is_active=True)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist) as exc:
             raise serializers.ValidationError(
                 {"token": "Invalid password reset link."}
-            )
+            ) from exc
 
         if not default_token_generator.check_token(user, token):
             raise serializers.ValidationError(
