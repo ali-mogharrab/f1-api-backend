@@ -1,5 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -110,6 +115,23 @@ class UsersAPITests(APITestCase):
         self.assertFalse(response.data["success"])
         self.assertIn("password_confirm", response.data["errors"])
 
+    def test_user_cannot_register_with_duplicate_email_case_insensitive(self):
+        url = reverse("users:register")
+        payload = {
+            "username": "ali-two",
+            "email": "ALI@EXAMPLE.COM",
+            "first_name": "Ali",
+            "last_name": "Duplicate",
+            "password": "StrongPassword123!",
+            "password_confirm": "StrongPassword123!",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("email", response.data["errors"])
+
     def test_user_can_get_token_pair(self):
         url = reverse("users:token-obtain-pair")
         payload = {
@@ -186,6 +208,155 @@ class UsersAPITests(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_authenticated_user_can_change_password(self):
+        self.client.force_authenticate(user=self.user)
+
+        url = reverse("users:password-change")
+        payload = {
+            "old_password": "StrongPassword123!",
+            "new_password": "NewStrongPassword123!",
+            "new_password_confirm": "NewStrongPassword123!",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("NewStrongPassword123!"))
+
+    def test_user_cannot_change_password_with_wrong_old_password(self):
+        self.client.force_authenticate(user=self.user)
+
+        url = reverse("users:password-change")
+        payload = {
+            "old_password": "WrongPassword123!",
+            "new_password": "NewStrongPassword123!",
+            "new_password_confirm": "NewStrongPassword123!",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("old_password", response.data["errors"])
+
+    def test_user_cannot_change_password_with_mismatched_confirmation(self):
+        self.client.force_authenticate(user=self.user)
+
+        url = reverse("users:password-change")
+        payload = {
+            "old_password": "StrongPassword123!",
+            "new_password": "NewStrongPassword123!",
+            "new_password_confirm": "DifferentPassword123!",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("new_password_confirm", response.data["errors"])
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        FRONTEND_URL="https://formula1.example",
+    )
+    def test_password_reset_request_sends_email_for_existing_user(self):
+        url = reverse("users:password-reset-request")
+        payload = {"email": "ALI@EXAMPLE.COM"}
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["ali@example.com"])
+        self.assertIn(
+            "https://formula1.example/reset-password-confirm",
+            mail.outbox[0].body,
+        )
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_password_reset_request_does_not_reveal_unknown_email(self):
+        url = reverse("users:password-reset-request")
+        payload = {"email": "unknown@example.com"}
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_user_can_reset_password_with_valid_token(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        url = reverse("users:password-reset-confirm")
+        payload = {
+            "uid": uid,
+            "token": token,
+            "new_password": "ResetStrongPassword123!",
+            "new_password_confirm": "ResetStrongPassword123!",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("ResetStrongPassword123!"))
+
+    def test_user_cannot_reuse_password_reset_token_after_successful_reset(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        url = reverse("users:password-reset-confirm")
+        payload = {
+            "uid": uid,
+            "token": token,
+            "new_password": "ResetStrongPassword123!",
+            "new_password_confirm": "ResetStrongPassword123!",
+        }
+
+        first_response = self.client.post(url, payload, format="json")
+        second_response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(second_response.data["success"])
+        self.assertIn("token", second_response.data["errors"])
+
+    def test_user_cannot_reset_password_with_invalid_token(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        url = reverse("users:password-reset-confirm")
+        payload = {
+            "uid": uid,
+            "token": "invalid-token",
+            "new_password": "ResetStrongPassword123!",
+            "new_password_confirm": "ResetStrongPassword123!",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("token", response.data["errors"])
+
+    def test_user_cannot_reset_password_with_mismatched_confirmation(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        url = reverse("users:password-reset-confirm")
+        payload = {
+            "uid": uid,
+            "token": token,
+            "new_password": "ResetStrongPassword123!",
+            "new_password_confirm": "DifferentPassword123!",
+        }
+
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("new_password_confirm", response.data["errors"])
 
     def test_authenticated_user_can_add_favorite_driver(self):
         self.client.force_authenticate(user=self.user)
