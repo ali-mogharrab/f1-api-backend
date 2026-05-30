@@ -164,6 +164,27 @@ When the development server is running, interactive API documentation is availab
 /api/schema/  # OpenAPI schema
 ```
 
+## API Request Screenshots
+
+The screenshots below show example API requests tested with Postman.
+
+### Get Drivers
+
+![Get drivers request](docs/screenshots/get_drivers.png)
+
+### Create Circuit
+
+![Post circuit request](docs/screenshots/post_circuit.png)
+
+### Update Race Result
+
+![Patch driver request](docs/screenshots/patch_raceresult.png)
+
+### Delete Race Result
+
+![Delete race result request](docs/screenshots/delete_raceresult.png)
+
+
 ## Local Development
 
 Install dependencies:
