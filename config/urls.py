@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/standings/", include("apps.standings.urls")),
     path("api/users/", include("apps.users.urls")),
     path("api/content/", include("apps.content.urls")),
+    path("api/ai/", include("apps.ai.urls")),
 ]
 
 if settings.DEBUG:

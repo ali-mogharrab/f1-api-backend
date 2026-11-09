@@ -1,0 +1,41 @@
+[
+  {
+    "id": "structured_recent", "category": "structured",
+    "question": "How many points did Lando Norris score in the last five locally recorded races of 2026?",
+    "tool": "get_driver_recent_results", "arguments": {"driver": "NOR", "season": 2026, "limit": 5},
+    "expected_values": {"data.0.points": "25.00", "returned_races": 1},
+    "required_tools": ["get_driver_recent_results"], "answer_patterns": ["25", "one|1|incomplete|partial|available|recorded"]
+  },
+  {
+    "id": "structured_points", "category": "structured",
+    "question": "Who leads the stored 2026 driver championship standings?",
+    "tool": "get_driver_standings", "arguments": {"season": 2026, "driver": null, "order_by": "points"},
+    "expected_values": {"data.0.driver": "Lando Norris", "data.0.points": "25.00"},
+    "required_tools": ["get_driver_standings"], "answer_patterns": ["Norris", "25"]
+  },
+  {
+    "id": "rag_pace", "category": "rag",
+    "question": "What do published articles report about McLaren race pace?",
+    "expected_article_slugs": ["evaluation-mclaren-pace"],
+    "required_tools": ["search_articles"], "answer_patterns": ["pace|tyre|tire"]
+  },
+  {
+    "id": "hybrid", "category": "hybrid",
+    "question": "Analyze McLaren's recent 2026 results and compare them with commentary in published articles.",
+    "expected_article_slugs": ["evaluation-mclaren-pace"],
+    "required_tools": ["get_team_recent_results", "search_articles"], "answer_patterns": ["25", "pace|tyre|tire"]
+  },
+  {
+    "id": "missing", "category": "missing",
+    "question": "Who won the 2030 championship according to the local database?",
+    "tool": "get_driver_standings", "arguments": {"season": 2030, "driver": null, "order_by": "points"},
+    "expected_values": {"data": []}, "expected_insufficient": true,
+    "answer_patterns": ["unavailable|don't have|insufficient|not|missing"]
+  },
+  {
+    "id": "citation", "category": "citation",
+    "question": "Summarize the published McLaren article and cite it. Exclude any unpublished Ferrari article.",
+    "expected_article_slugs": ["evaluation-mclaren-pace"],
+    "required_tools": ["search_articles"], "answer_patterns": ["McLaren"]
+  }
+]

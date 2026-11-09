@@ -6,6 +6,14 @@ The backend is organized as a modular Django project with separate apps for raci
 
 ## Features
 
+### F1 AI Analyst
+
+Authenticated assistant using pretrained models, Responses API function calling,
+read-only ORM tools, and semantic retrieval over published articles. Includes
+owned conversations, PostgreSQL/pgvector storage with working SQLite retrieval,
+incremental indexing, offline mocked tests, and labeled evaluation cases.
+See [AI architecture, setup, API, and evaluation](docs/ai-analyst.md).
+
 ### Racing Data
 
 - Seasons, teams, drivers, circuits, and races
@@ -82,6 +90,7 @@ The API prevents duplicate favorites per user.
 ```txt
 .
 ├── apps/
+│   ├── ai/            # LLM tools, article RAG, conversations, and evaluations
 │   ├── content/       # Categories, tags, articles, and featured content
 │   ├── core/          # Shared responses, permissions, pagination, utilities
 │   ├── racing/        # Seasons, teams, drivers, circuits, races, and results

@@ -9,6 +9,7 @@ __pycache__/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+ai-evaluation.sqlite3*
 media/
 
 # Environment variables
@@ -52,3 +53,5 @@ schema.json
 # OS files
 .DS_Store
 Thumbs.db
+
+.f1b/

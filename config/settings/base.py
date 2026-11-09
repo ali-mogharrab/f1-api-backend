@@ -64,6 +64,7 @@ LOCAL_APPS = [
     "apps.racing",
     "apps.standings",
     "apps.content",
+    "apps.ai",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -210,4 +211,35 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": True,
+}
+
+# F1 AI Analyst. Provider credentials stay on the server.
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+AI_MODEL = config("AI_MODEL", default="gpt-5-mini")
+AI_EMBEDDING_MODEL = config("AI_EMBEDDING_MODEL", default="text-embedding-3-small")
+AI_EMBEDDING_DIMENSIONS = config("AI_EMBEDDING_DIMENSIONS", default=1536, cast=int)
+AI_GENERATION_PROVIDER = "apps.ai.providers.OpenAIProvider"
+AI_EMBEDDING_PROVIDER = "apps.ai.providers.OpenAIProvider"
+AI_MAX_OUTPUT_TOKENS = config("AI_MAX_OUTPUT_TOKENS", default=2000, cast=int)
+AI_MAX_TOOL_CALLS = config("AI_MAX_TOOL_CALLS", default=6, cast=int)
+AI_PROVIDER_TIMEOUT = config("AI_PROVIDER_TIMEOUT", default=20, cast=float)
+AI_REQUEST_TIMEOUT = config("AI_REQUEST_TIMEOUT", default=90, cast=float)
+AI_MESSAGE_MAX_LENGTH = 4000
+AI_HISTORY_MESSAGES = 12
+AI_CONTEXT_MAX_CHARS = 24000
+AI_TOOL_RESULT_MAX_CHARS = 24000
+AI_CONVERSATION_MAX_MESSAGES = 100
+AI_THROTTLE_RATE = config("AI_THROTTLE_RATE", default="10/hour")
+RAG_TOP_K = config("RAG_TOP_K", default=5, cast=int)
+RAG_MIN_SIMILARITY = config("RAG_MIN_SIMILARITY", default=0.3, cast=float)
+RAG_CHUNK_SIZE = config("RAG_CHUNK_SIZE", default=1200, cast=int)
+RAG_CHUNK_OVERLAP = config("RAG_CHUNK_OVERLAP", default=200, cast=int)
+RAG_MAX_ARTICLE_CHARS = 200000
+RAG_EMBEDDING_BATCH_SIZE = 32
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "ai": {
+        "BACKEND": config("AI_CACHE_BACKEND", default="django.core.cache.backends.locmem.LocMemCache"),
+        "LOCATION": config("AI_CACHE_LOCATION", default="f1-ai-throttle"),
+    },
 }
