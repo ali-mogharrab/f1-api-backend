@@ -2,6 +2,7 @@ from .base import *
 
 
 DEBUG = True
+AI_ENVIRONMENT = "development"
 
 INSTALLED_APPS += [
     "debug_toolbar",

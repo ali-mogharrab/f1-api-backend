@@ -15,7 +15,7 @@ JWT + DRF validation + per-user throttle
   -> atomic user/assistant message pair -> existing success envelope
 ```
 
-The model chooses tools; there is no keyword router. `search_articles` is a tool,
+In the real OpenAI mode, the model chooses tools; there is no keyword router. `search_articles` is a tool,
 so hybrid requests can interleave article retrieval and structured data. The first
 generation requires a tool, later steps allow a follow-up query or final answer,
 and the last generation disables tools. Parallel tool execution is disabled.
@@ -29,6 +29,8 @@ Key modules:
 | --- | --- |
 | `models.py` | UUID conversations/messages and article document/chunk persistence |
 | `providers.py` | Generation/embedding protocols and official OpenAI adapter |
+| `demo/providers.py`, `configuration.py` | Opt-in scripted generation, lexical demo vectors, production guards |
+| `demo/dataset.py`, `setup_ai_demo` command | Isolated database ownership, create-only synthetic seed, normal indexing |
 | `tools.py` | Closed registry, JSON schemas, strict validation, entity resolution, ORM tools |
 | `documents.py` | Published eligibility, normalization, chunking, fingerprint/profile |
 | `indexing.py`, `retrieval.py`, `citations.py` | Atomic replacement, native vector search, SQLite cosine search, final source rechecks |
@@ -58,12 +60,197 @@ The existing `.env.example` targets production. For local use, explicitly set
 in the backend `.env` or deployment secret manager; never in React/Vite variables.
 With no key, existing APIs still work and AI calls return a sanitized 503.
 
-SQLite stores pgvector field values as serialized vector text and computes actual
+With the real embedding provider, SQLite stores pgvector field values as serialized vector text and computes actual
 cosine similarity in Python. This uses the same provider embeddings and relevance
 thresholds as PostgreSQL; it is a functional semantic search fallback. It scans
 eligible chunks with bounded heap storage for top-k. It suits small local datasets,
 not large production corpora. Automated tests use tiny mocked vectors, not paid API
 calls. Production embedding quality is not measured by those synthetic tests.
+
+## Offline portfolio demonstration
+
+The offline mode is optional and disabled by default. It requires **no API key,
+internet access, GPU, Docker, PostgreSQL, or model download at runtime**. It uses
+the dependencies already installed for this backend. Installing dependencies for
+the first time still requires an available package cache or package index.
+
+The OpenAI implementation is preserved. Only the two provider adapters change;
+the same API, orchestration loop, registered read-only tools, strict argument
+validation, article extraction/chunking/indexing, SQLite cosine search, citation
+validation, JWT ownership, throttling, and conversation persistence execute.
+There is no alternate chat endpoint or canned API response path.
+
+### Start the isolated demo
+
+Run from the backend repository with its dependencies installed. In this workspace:
+
+```bash
+cd /mnt/d/projects/f1/f1-api-backend
+source .f1b/bin/activate
+export DEBUG=True
+export DJANGO_SETTINGS_MODULE=config.settings.demo
+python manage.py check
+python manage.py setup_ai_demo
+python manage.py createsuperuser --username demo --email demo@example.com
+python manage.py runserver 127.0.0.1:8000
+```
+
+Choose a local password when prompted. No account/password or API credential is
+embedded in the fixture. `createsuperuser` is only for convenient local admin
+access; an ordinary account created through `/api/users/register/` also works.
+For a fresh checkout, create/activate your usual Python virtual environment and
+install `requirements/development.txt` instead of using this workspace's `.f1b`.
+
+`setup_ai_demo` creates the separate ignored `ai-demo.sqlite3`, marks its ownership,
+runs migrations, inserts 35 synthetic records, and invokes the **normal**
+`index_articles` command. Use this setup command before manually running demo
+migrations. It refuses the development `db.sqlite3` path (including symlinks) and
+existing unmarked databases before any migrations or seed writes. It never reads
+`DATABASE_URL` for its demo database. To choose another new demo file, set
+`AI_DEMO_DB=/absolute/path/to/another-demo.sqlite3` before running setup.
+
+Repeated setup inserts only missing fixture UUIDs and preserves existing rows,
+edits, users, and conversations. Unchanged article chunk IDs are retained by the
+normal indexer's idempotence checks. Changed published articles are reindexed;
+unpublished/deleted articles follow the existing exclusion and pruning rules.
+An identity conflict stops seed insertion atomically rather than replacing rows.
+Do not load `ai_demo.json` manually into a development or production database.
+
+The seed contains Ferrari and McLaren as recognizable team names, four explicitly
+fictional drivers, three `DEMO Synthetic Grand Prix` races, 12 race-result records,
+six championship snapshots, four published synthetic articles, a private draft,
+and a future article. All statistics and reporting are fictional demonstrations,
+not verified Formula 1 history. The draft/future articles are not indexed.
+
+After editorial edits, indexing remains a normal command, using local demo vectors:
+
+```bash
+python manage.py index_articles --settings=config.settings.demo
+```
+
+### Supported scripted questions
+
+These five questions are an explicit small allowlist. Matching ignores casing,
+repeated whitespace, trailing question/full-stop punctuation, and curly versus
+straight apostrophes; it does not understand arbitrary paraphrases.
+
+| Question | Actual tools used |
+| --- | --- |
+| `Compare Ferrari and McLaren's performance.` | `get_constructor_standings` |
+| `What do the articles say about Ferrari?` | `search_articles` |
+| `What do the articles say about McLaren?` | `search_articles` |
+| `Analyze McLaren's race results and related articles.` | `get_team_recent_results`, then `search_articles` |
+| `Who won the 2030 championship?` | `get_driver_standings` for an unavailable season |
+
+Structured answers format current tool-returned values, not constants from the
+fixture. Hybrid answers sum actual returned race points with `Decimal` and display
+article excerpts alongside them; they do not infer causes. Article answers show
+at most two labeled normalized excerpts, not a generated summary. Missing required
+evidence, exhausted budgets, and unsupported questions use the existing
+insufficient-evidence answer with empty sources. Unsupported questions do not
+issue a speculative database query. There is no conversational reasoning or
+implicit follow-up interpretation: each turn needs a supported question.
+
+The generation adapter emits/consumes the existing `function_call` and matching
+`function_call_output` protocol. It derives its next step only from the current
+user question and completed expected tool outputs. It has no ORM or network
+access, and article instructions cannot select tools or change the script.
+
+`DemoEmbeddingProvider` uses Unicode-normalized words, a small stop-word list,
+SHA-256 feature hashing, logarithmic term-frequency weights, and L2 normalization.
+It is stable across Python processes and uses no randomized built-in `hash()`.
+These are **lexical demonstration vectors, not pretrained semantic embeddings**.
+Synonyms, multilingual meaning, paraphrases, hash collisions, and semantic
+retrieval quality are not solved. Cosine search, persistence, thresholds, and
+citations remain real application code. The demo uses 256 dimensions and a 0.1
+similarity threshold; its metrics must never be presented as production semantic
+search quality. Its provider/model profile isolates these vectors from OpenAI
+indexes, even when a database contains both profiles during a transition.
+
+### JWT requests and demo metadata
+
+In a second Bash terminal (with the backend virtual environment activated):
+
+```bash
+TOKEN_PAYLOAD=$(python -c 'import getpass,json; print(json.dumps({"username":"demo","password":getpass.getpass("Local demo password: ")}))')
+TOKEN_RESPONSE=$(printf '%s' "$TOKEN_PAYLOAD" | curl --fail --silent --show-error http://127.0.0.1:8000/api/users/token/ \
+  -H 'Content-Type: application/json' --data-binary @-)
+unset TOKEN_PAYLOAD
+export ACCESS_TOKEN=$(printf '%s' "$TOKEN_RESPONSE" | python -c 'import json,sys; print(json.load(sys.stdin)["access"])')
+unset TOKEN_RESPONSE
+curl --fail --silent --show-error http://127.0.0.1:8000/api/ai/chat/ \
+  -H "Authorization: Bearer $ACCESS_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"message":"What do the articles say about Ferrari?"}'
+curl --fail --silent --show-error http://127.0.0.1:8000/api/ai/conversations/ \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+Read/continue a returned conversation (set its actual UUID):
+
+```bash
+CONVERSATION_ID=replace-with-returned-uuid
+curl --fail --silent --show-error "http://127.0.0.1:8000/api/ai/conversations/$CONVERSATION_ID/" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+CHAT_PAYLOAD=$(python -c 'import json,sys; print(json.dumps({"message":"Analyze McLaren\u0027s race results and related articles.","conversation_id":sys.argv[1]}))' "$CONVERSATION_ID")
+curl --fail --silent --show-error http://127.0.0.1:8000/api/ai/chat/ \
+  -H "Authorization: Bearer $ACCESS_TOKEN" -H 'Content-Type: application/json' -d "$CHAT_PAYLOAD"
+```
+
+The existing response envelope and source fields are unchanged. Chat metadata and
+stored assistant-message metadata include the following safe additions:
+
+```json
+{
+  "mode": "demo",
+  "demo": true,
+  "data_provenance": "synthetic_demo",
+  "model": "scripted-demo-v1",
+  "input_tokens": 0,
+  "output_tokens": 0
+}
+```
+
+Zero token counts mean no LLM tokens were used, not free OpenAI usage. Successful
+demo answers also begin with a synthetic-data notice. The existing no-evidence
+answer is kept verbatim; its metadata still identifies demo mode. Source record
+IDs and URLs are verified through the existing citation checks. Metadata does not
+expose provider import paths, database paths, credentials, or secret settings.
+
+### Provider selection and production safety
+
+Select demo mode only with `config.settings.demo`, or explicit equivalent test
+overrides. The real defaults remain `AI_MODE="openai"`, both OpenAI provider
+classes, and `AI_DEMO_ALLOWED=False`. Demo settings opt into both local classes,
+their versioned model IDs, and a development environment. Mixed real/demo
+providers and mislabeled demo model IDs fail checks. `ai.E004` prevents demo
+selection in production, regardless of `DEBUG`; runtime provider factories and
+demo methods enforce the same restriction even when command checks are skipped.
+The demo settings also use local caches and console email to avoid inherited
+external infrastructure. Authentication and throttling are unchanged.
+
+An OpenAI failure **never** selects a demo provider. There are no fallback responses
+in the OpenAI adapter; its request construction, timeouts, and error handling are
+unchanged. Only provider selection validation and safe mode metadata are shared.
+
+To return to real AI later:
+
+```bash
+export DJANGO_SETTINGS_MODULE=config.settings.development
+export DEBUG=True
+# Set OPENAI_API_KEY privately in the backend .env or process environment.
+python manage.py check
+python manage.py migrate
+python manage.py index_articles
+python manage.py runserver 127.0.0.1:8000
+```
+
+That uses the original development database, OpenAI models, and real embedding
+profile. Configure production with the existing production settings and secrets;
+never deploy the demo settings module. If deliberately migrating a corpus between
+providers, reindex in the selected real mode before expecting retrieval results.
+Open-ended reasoning, semantic interpretation/retrieval quality, and real model
+behavior require an actual generation/embedding provider and separate evaluation.
+The offline tests do not verify OpenAI availability, costs, or live model quality.
 
 ## Configuration
 
@@ -276,12 +463,23 @@ python manage.py makemigrations --check --dry-run --settings=config.settings.tes
 python manage.py spectacular --file /tmp/f1-schema.yml --validate --settings=config.settings.test
 ```
 
-All provider calls are mocked, including genuine embedding/ranking behavior tested
-with curated vectors. Tests cover normalization/overlap, update/no-op indexing,
+OpenAI calls are mocked; offline demo providers execute directly with network
+calls blocked in their API tests. Tests cover normalization/overlap, update/no-op indexing,
 deletion/unpublication/scheduling, stale evidence, thresholds/profile isolation,
 tool validation and queries, hybrid execution, injection data boundaries, citations,
 history limits, deadlines, sanitized SDK errors, JWT, ownership, rate limiting,
 concurrent revision handling, and API envelopes.
+
+Run just the offline demo tests with:
+
+```bash
+DEBUG=False python manage.py test apps.ai.tests.test_demo --settings=config.settings.test
+```
+
+These also launch isolated setup-command subprocesses to verify fresh/repeated
+setup, preservation of edited demo rows, refusal of an unrelated database, and
+rejection of the normal development database path. They demonstrate integration
+correctness, not LLM reasoning or semantic search quality.
 
 The same suite supports PostgreSQL without changing application code:
 

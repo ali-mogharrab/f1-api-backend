@@ -79,6 +79,9 @@ def analyze(message, *, conversation=None, provider=None):
     deadline = time.monotonic() + settings.AI_REQUEST_TIMEOUT
     sources, called = {}, []
     input_tokens = output_tokens = 0
+    mode_metadata = {"mode": settings.AI_MODE, "demo": settings.AI_MODE == "demo"}
+    if settings.AI_MODE == "demo":
+        mode_metadata["data_provenance"] = "synthetic_demo"
     instructions = (
         SYSTEM_INSTRUCTIONS
         + f"\nServer date (UTC): {timezone.now().date().isoformat()}."
@@ -129,6 +132,7 @@ def analyze(message, *, conversation=None, provider=None):
                         "model": settings.AI_MODEL,
                         "input_tokens": input_tokens,
                         "output_tokens": output_tokens,
+                        **mode_metadata,
                     },
                 )
             return Analysis(
@@ -140,6 +144,7 @@ def analyze(message, *, conversation=None, provider=None):
                     "model": settings.AI_MODEL,
                     "input_tokens": input_tokens,
                     "output_tokens": output_tokens,
+                    **mode_metadata,
                 },
             )
         # Parallel calls are disabled at the provider; fail closed on violations.

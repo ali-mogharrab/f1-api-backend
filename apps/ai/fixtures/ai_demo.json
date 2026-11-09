@@ -1,0 +1,490 @@
+[
+  {
+    "model": "racing.season",
+    "pk": "de000000-0000-4000-8000-000000000001",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "year": 2026,
+      "name": "DEMO ONLY \u2014 synthetic season, not historical F1 data",
+      "is_current": true
+    }
+  },
+  {
+    "model": "racing.team",
+    "pk": "de000000-0000-4000-8000-000000000002",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "name": "Ferrari",
+      "official_name": "Ferrari \u2014 SYNTHETIC OFFLINE DEMO",
+      "country": "Demonstration"
+    }
+  },
+  {
+    "model": "racing.team",
+    "pk": "de000000-0000-4000-8000-000000000003",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "name": "McLaren",
+      "official_name": "McLaren \u2014 SYNTHETIC OFFLINE DEMO",
+      "country": "Demonstration"
+    }
+  },
+  {
+    "model": "racing.driver",
+    "pk": "de000000-0000-4000-8000-000000000004",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "first_name": "Avery",
+      "last_name": "Demo",
+      "abbreviation": "DRA",
+      "current_team": "de000000-0000-4000-8000-000000000002",
+      "biography": "Fictional driver for offline demonstration only."
+    }
+  },
+  {
+    "model": "racing.driver",
+    "pk": "de000000-0000-4000-8000-000000000005",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "first_name": "Blair",
+      "last_name": "Demo",
+      "abbreviation": "DRB",
+      "current_team": "de000000-0000-4000-8000-000000000002",
+      "biography": "Fictional driver for offline demonstration only."
+    }
+  },
+  {
+    "model": "racing.driver",
+    "pk": "de000000-0000-4000-8000-000000000006",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "first_name": "Casey",
+      "last_name": "Example",
+      "abbreviation": "DRC",
+      "current_team": "de000000-0000-4000-8000-000000000003",
+      "biography": "Fictional driver for offline demonstration only."
+    }
+  },
+  {
+    "model": "racing.driver",
+    "pk": "de000000-0000-4000-8000-000000000007",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "first_name": "Drew",
+      "last_name": "Example",
+      "abbreviation": "DRD",
+      "current_team": "de000000-0000-4000-8000-000000000003",
+      "biography": "Fictional driver for offline demonstration only."
+    }
+  },
+  {
+    "model": "racing.circuit",
+    "pk": "de000000-0000-4000-8000-000000000008",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "name": "DEMO Training Circuit",
+      "country": "Synthetic",
+      "city": "Fictional location"
+    }
+  },
+  {
+    "model": "racing.race",
+    "pk": "de000000-0000-4000-8000-000000000011",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "circuit": "de000000-0000-4000-8000-000000000008",
+      "name": "DEMO Synthetic Grand Prix 1",
+      "round_number": 1,
+      "race_date": "2026-01-01",
+      "status": "completed"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000024",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000011",
+      "driver": "de000000-0000-4000-8000-000000000004",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 1,
+      "points": "25.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000025",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000011",
+      "driver": "de000000-0000-4000-8000-000000000005",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 4,
+      "points": "12.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000026",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000011",
+      "driver": "de000000-0000-4000-8000-000000000006",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 2,
+      "points": "18.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000027",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000011",
+      "driver": "de000000-0000-4000-8000-000000000007",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 3,
+      "points": "15.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.race",
+    "pk": "de000000-0000-4000-8000-000000000012",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "circuit": "de000000-0000-4000-8000-000000000008",
+      "name": "DEMO Synthetic Grand Prix 2",
+      "round_number": 2,
+      "race_date": "2026-01-08",
+      "status": "completed"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000028",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000012",
+      "driver": "de000000-0000-4000-8000-000000000004",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 3,
+      "points": "15.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000029",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000012",
+      "driver": "de000000-0000-4000-8000-000000000005",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 4,
+      "points": "12.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000030",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000012",
+      "driver": "de000000-0000-4000-8000-000000000006",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 1,
+      "points": "25.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000031",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000012",
+      "driver": "de000000-0000-4000-8000-000000000007",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 2,
+      "points": "18.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.race",
+    "pk": "de000000-0000-4000-8000-000000000013",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "circuit": "de000000-0000-4000-8000-000000000008",
+      "name": "DEMO Synthetic Grand Prix 3",
+      "round_number": 3,
+      "race_date": "2026-01-15",
+      "status": "completed"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000032",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000013",
+      "driver": "de000000-0000-4000-8000-000000000004",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 2,
+      "points": "18.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000033",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000013",
+      "driver": "de000000-0000-4000-8000-000000000005",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 4,
+      "points": "12.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000034",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000013",
+      "driver": "de000000-0000-4000-8000-000000000006",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 1,
+      "points": "25.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "racing.raceresult",
+    "pk": "de000000-0000-4000-8000-000000000035",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "race": "de000000-0000-4000-8000-000000000013",
+      "driver": "de000000-0000-4000-8000-000000000007",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 3,
+      "points": "15.00",
+      "status": "classified"
+    }
+  },
+  {
+    "model": "standings.driverstanding",
+    "pk": "de000000-0000-4000-8000-000000000040",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "driver": "de000000-0000-4000-8000-000000000006",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 1,
+      "points": "68.00",
+      "wins": 2,
+      "podiums": 3,
+      "races_entered": 3,
+      "races_finished": 3
+    }
+  },
+  {
+    "model": "standings.driverstanding",
+    "pk": "de000000-0000-4000-8000-000000000041",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "driver": "de000000-0000-4000-8000-000000000004",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 2,
+      "points": "58.00",
+      "wins": 1,
+      "podiums": 3,
+      "races_entered": 3,
+      "races_finished": 3
+    }
+  },
+  {
+    "model": "standings.driverstanding",
+    "pk": "de000000-0000-4000-8000-000000000042",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "driver": "de000000-0000-4000-8000-000000000007",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 3,
+      "points": "48.00",
+      "wins": 0,
+      "podiums": 3,
+      "races_entered": 3,
+      "races_finished": 3
+    }
+  },
+  {
+    "model": "standings.driverstanding",
+    "pk": "de000000-0000-4000-8000-000000000043",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "driver": "de000000-0000-4000-8000-000000000005",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 4,
+      "points": "36.00",
+      "wins": 0,
+      "podiums": 0,
+      "races_entered": 3,
+      "races_finished": 3
+    }
+  },
+  {
+    "model": "standings.constructorstanding",
+    "pk": "de000000-0000-4000-8000-000000000044",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "team": "de000000-0000-4000-8000-000000000003",
+      "position": 1,
+      "points": "116.00",
+      "wins": 2,
+      "podiums": 6,
+      "races_entered": 3
+    }
+  },
+  {
+    "model": "standings.constructorstanding",
+    "pk": "de000000-0000-4000-8000-000000000045",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "season": "de000000-0000-4000-8000-000000000001",
+      "team": "de000000-0000-4000-8000-000000000002",
+      "position": 2,
+      "points": "94.00",
+      "wins": 1,
+      "podiums": 3,
+      "races_entered": 3
+    }
+  },
+  {
+    "model": "content.article",
+    "pk": "de000000-0000-4000-8000-000000000050",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "title": "DEMO: Ferrari race pace notebook",
+      "slug": "demo-ferrari-race-pace",
+      "content": "SYNTHETIC DEMO ARTICLE. Ferrari performance in the fictional training races showed changing race pace. The demonstration commentary focuses on tyre management and consistency. This is invented reporting for software testing, not real Formula 1 news.",
+      "status": "published",
+      "published_at": "2026-01-16T12:00:00Z",
+      "related_team": "de000000-0000-4000-8000-000000000002"
+    }
+  },
+  {
+    "model": "content.article",
+    "pk": "de000000-0000-4000-8000-000000000051",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "title": "DEMO: Ferrari performance review",
+      "slug": "demo-ferrari-performance",
+      "content": "SYNTHETIC DEMO ARTICLE. Ferrari race performance is discussed in this fictional strategy review. Engineers in the demonstration story compare race pace and pit stop planning. No statement describes a real Formula 1 event.",
+      "status": "published",
+      "published_at": "2026-01-17T12:00:00Z",
+      "related_team": "de000000-0000-4000-8000-000000000002"
+    }
+  },
+  {
+    "model": "content.article",
+    "pk": "de000000-0000-4000-8000-000000000052",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "title": "DEMO: McLaren race pace notebook",
+      "slug": "demo-mclaren-race-pace",
+      "content": "SYNTHETIC DEMO ARTICLE. McLaren performance in the fictional races is described as consistent race pace. The invented commentary discusses tyre management and repeatable long runs. It is provided only to demonstrate article retrieval, not to explain real results.",
+      "status": "published",
+      "published_at": "2026-01-18T12:00:00Z",
+      "related_team": "de000000-0000-4000-8000-000000000003"
+    }
+  },
+  {
+    "model": "content.article",
+    "pk": "de000000-0000-4000-8000-000000000053",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "title": "DEMO: McLaren performance review",
+      "slug": "demo-mclaren-performance",
+      "content": "SYNTHETIC DEMO ARTICLE. McLaren race performance and pace are the topic of this fictional report. The story discusses pit stop planning alongside the sample race results. It does not establish a causal explanation for any real Formula 1 result.",
+      "status": "published",
+      "published_at": "2026-01-19T12:00:00Z",
+      "related_team": "de000000-0000-4000-8000-000000000003"
+    }
+  },
+  {
+    "model": "content.article",
+    "pk": "de000000-0000-4000-8000-000000000054",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "title": "DEMO: Unpublished private Ferrari draft",
+      "slug": "demo-private-ferrari-draft",
+      "content": "SYNTHETIC PRIVATE DRAFT \u2014 must never be indexed or returned as evidence.",
+      "status": "draft",
+      "published_at": null,
+      "related_team": "de000000-0000-4000-8000-000000000002"
+    }
+  },
+  {
+    "model": "content.article",
+    "pk": "de000000-0000-4000-8000-000000000055",
+    "fields": {
+      "created_at": "2026-01-16T00:00:00Z",
+      "updated_at": "2026-01-16T00:00:00Z",
+      "title": "DEMO: Scheduled McLaren article",
+      "slug": "demo-future-mclaren-article",
+      "content": "SYNTHETIC SCHEDULED ARTICLE \u2014 must not be visible before publication.",
+      "status": "published",
+      "published_at": "2099-01-01T00:00:00Z",
+      "related_team": "de000000-0000-4000-8000-000000000003"
+    }
+  }
+]

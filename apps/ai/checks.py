@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.core.checks import Error, register
 
+from .configuration import provider_configuration_errors
+
 
 @register()
 def ai_configuration(app_configs, **kwargs):
@@ -30,4 +32,7 @@ def ai_configuration(app_configs, **kwargs):
         errors.append(
             Error("RAG_MIN_SIMILARITY must be between -1 and 1.", id="ai.E003")
         )
+    errors.extend(
+        Error(message, id="ai.E004") for message in provider_configuration_errors()
+    )
     return errors

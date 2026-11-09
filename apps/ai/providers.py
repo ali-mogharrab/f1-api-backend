@@ -8,6 +8,7 @@ import openai
 from django.conf import settings
 from django.utils.module_loading import import_string
 
+from .configuration import validate_provider_configuration
 from .exceptions import ProviderTimeout, ProviderUnavailable
 
 
@@ -127,8 +128,10 @@ class OpenAIProvider:
 
 
 def generation_provider() -> GenerationProvider:
+    validate_provider_configuration()
     return import_string(settings.AI_GENERATION_PROVIDER)()
 
 
 def embedding_provider() -> EmbeddingProvider:
+    validate_provider_configuration()
     return import_string(settings.AI_EMBEDDING_PROVIDER)()

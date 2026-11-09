@@ -2,6 +2,7 @@
 
 from .base import *
 
+AI_ENVIRONMENT = "test"
 SECRET_KEY = "isolated-test-secret-at-least-thirty-two-characters"
 DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

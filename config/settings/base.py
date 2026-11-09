@@ -214,6 +214,9 @@ SIMPLE_JWT = {
 }
 
 # F1 AI Analyst. Provider credentials stay on the server.
+AI_MODE = "openai"
+AI_ENVIRONMENT = "production"  # Fail closed for base/custom deployment settings.
+AI_DEMO_ALLOWED = False
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 AI_MODEL = config("AI_MODEL", default="gpt-5-mini")
 AI_EMBEDDING_MODEL = config("AI_EMBEDDING_MODEL", default="text-embedding-3-small")

@@ -14,6 +14,27 @@ owned conversations, PostgreSQL/pgvector storage with working SQLite retrieval,
 incremental indexing, offline mocked tests, and labeled evaluation cases.
 See [AI architecture, setup, API, and evaluation](docs/ai-analyst.md).
 
+An optional offline portfolio demo exercises the same tool, retrieval, citation,
+and conversation pipelines with scripted generation and lexical demo vectors.
+It requires no API key or model download and uses a separate synthetic SQLite
+database. It does not provide LLM reasoning or production semantic search.
+
+With backend dependencies installed:
+
+```bash
+DEBUG=True python manage.py setup_ai_demo --settings=config.settings.demo
+DEBUG=True python manage.py createsuperuser --username demo --email demo@example.com --settings=config.settings.demo
+DEBUG=True python manage.py runserver 127.0.0.1:8000 --settings=config.settings.demo
+```
+
+Try `Compare Ferrari and McLaren's performance.`,
+`What do the articles say about Ferrari?`, or
+`Analyze McLaren's race results and related articles.` through the authenticated
+chat API. See the [offline demo guide](docs/ai-analyst.md#offline-portfolio-demonstration)
+for JWT requests, supported questions, safe repeatable setup, and switching back
+to real OpenAI providers. Demo providers are disabled by default and rejected in
+production settings.
+
 ### Racing Data
 
 - Seasons, teams, drivers, circuits, and races
