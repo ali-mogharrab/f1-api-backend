@@ -330,6 +330,7 @@ class SprintResultDetailAPIView(BaseRetrieveUpdateDestroyAPIView):
 
 
 class CurrentSeasonAPIView(APIView):
+    serializer_class = SeasonSerializer
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -354,6 +355,7 @@ class CurrentSeasonAPIView(APIView):
 
 
 class UpcomingRaceAPIView(APIView):
+    serializer_class = RaceSerializer
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -388,6 +390,7 @@ class UpcomingRaceAPIView(APIView):
 
 
 class LatestRaceAPIView(APIView):
+    serializer_class = RaceSerializer
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -397,12 +400,7 @@ class LatestRaceAPIView(APIView):
             Race.objects.select_related("season", "circuit")
             .filter(
                 race_date__lte=today,
-            )
-            .exclude(
-                status__in=[
-                    Race.RaceStatus.CANCELLED,
-                    Race.RaceStatus.POSTPONED,
-                ]
+                status=Race.RaceStatus.COMPLETED,
             )
             .order_by("-race_date", "-race_time")
             .first()

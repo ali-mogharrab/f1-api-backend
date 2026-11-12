@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.racing.models import (
@@ -9,16 +10,19 @@ from apps.racing.models import (
     Season,
     SprintResult,
     Team,
+    validate_result_team,
 )
 
-def validate_driver_team_match(driver, team):
-    if driver and team and driver.current_team_id:
-        if driver.current_team_id != team.id:
-            raise serializers.ValidationError(
-                {
-                    "team": "Team must match the driver's current team."
-                }
-            )
+def validate_driver_team_match(attrs, instance):
+    try:
+        validate_result_team(
+            attrs.get("driver", getattr(instance, "driver", None)),
+            attrs.get("team", getattr(instance, "team", None)),
+            attrs.get("race", getattr(instance, "race", None)),
+        )
+    except DjangoValidationError as exc:
+        raise serializers.ValidationError(exc.message_dict) from exc
+
 
 class SeasonSerializer(serializers.ModelSerializer):
     class Meta:
@@ -243,11 +247,8 @@ class RaceResultSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        driver = attrs.get("driver", getattr(self.instance, "driver", None))
-        team = attrs.get("team", getattr(self.instance, "team", None))
+        validate_driver_team_match(attrs, self.instance)
         points = attrs.get("points", getattr(self.instance, "points", 0))
-
-        validate_driver_team_match(driver, team)
 
         if points < 0:
             raise serializers.ValidationError(
@@ -307,11 +308,7 @@ class QualifyingResultSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        driver = attrs.get("driver", getattr(self.instance, "driver", None))
-        team = attrs.get("team", getattr(self.instance, "team", None))
-
-        validate_driver_team_match(driver, team)
-
+        validate_driver_team_match(attrs, self.instance)
         return attrs
 
 
@@ -363,11 +360,8 @@ class SprintResultSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        driver = attrs.get("driver", getattr(self.instance, "driver", None))
-        team = attrs.get("team", getattr(self.instance, "team", None))
+        validate_driver_team_match(attrs, self.instance)
         points = attrs.get("points", getattr(self.instance, "points", 0))
-
-        validate_driver_team_match(driver, team)
 
         if points < 0:
             raise serializers.ValidationError(

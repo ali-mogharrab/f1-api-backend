@@ -8,9 +8,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.core.permissions import IsAdminOrReadOnly
 from apps.core.responses import error_response, success_response
+from apps.core.schema import ResourceSchema
 
 
 class BaseListCreateAPIView(APIView):
+    schema = ResourceSchema()
+    paginated_list = True
+    pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
     permission_classes = [IsAdminOrReadOnly]
 
     model = None
@@ -89,6 +93,7 @@ class BaseListCreateAPIView(APIView):
 
 
 class BaseRetrieveUpdateDestroyAPIView(APIView):
+    schema = ResourceSchema()
     permission_classes = [IsAdminOrReadOnly]
 
     model = None

@@ -1,11 +1,19 @@
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.core.responses import error_response, success_response
+from apps.core.schema import SuccessResponseSerializer, success_schema
 from apps.users.models import FavoriteDriver, FavoriteRace, FavoriteTeam
+from apps.users.throttles import (
+    LoginThrottle,
+    PasswordResetThrottle,
+    RefreshThrottle,
+    RegistrationThrottle,
+)
 from apps.users.serializers import (
     FavoriteDriverSerializer,
     FavoriteRaceSerializer,
@@ -16,24 +24,47 @@ from apps.users.serializers import (
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    UserDashboardSerializer,
 )
+
+
+class LoginView(TokenObtainPairView):
+    throttle_classes = [LoginThrottle]
+
+
+class RefreshView(TokenRefreshView):
+    throttle_classes = [RefreshThrottle]
 
 
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [RegistrationThrottle]
 
     @extend_schema(
         tags=["users"],
         summary="Register a new user",
         description="Create a new user account. A user profile is created automatically.",
         request=RegisterSerializer,
-        responses={201: UserSerializer},
+        responses={201: success_schema(UserSerializer)},
     )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
 
         if serializer.is_valid():
-            user = serializer.save()
+            try:
+                with transaction.atomic():
+                    user = serializer.save()
+            except IntegrityError:
+                return error_response(
+                    errors={
+                        "non_field_errors": [
+                            "An account with this username or email already exists."
+                        ]
+                    },
+                    message="Validation error.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
 
             return success_response(
                 data=UserSerializer(user, context={"request": request}).data,
@@ -48,6 +79,11 @@ class RegisterAPIView(APIView):
         )
 
 
+@extend_schema_view(
+    post=extend_schema(
+        request=PasswordChangeSerializer, responses={200: SuccessResponseSerializer}
+    )
+)
 class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -65,8 +101,16 @@ class PasswordChangeView(APIView):
         )
 
 
+@extend_schema_view(
+    post=extend_schema(
+        request=PasswordResetRequestSerializer,
+        responses={200: SuccessResponseSerializer},
+    )
+)
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [PasswordResetThrottle]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(
@@ -85,8 +129,16 @@ class PasswordResetRequestView(APIView):
         )
 
 
+@extend_schema_view(
+    post=extend_schema(
+        request=PasswordResetConfirmSerializer,
+        responses={200: SuccessResponseSerializer},
+    )
+)
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [PasswordResetThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -106,7 +158,7 @@ class CurrentUserAPIView(APIView):
         tags=["users"],
         summary="Get current authenticated user",
         description="Return the currently authenticated user's account and profile information.",
-        responses={200: UserSerializer},
+        responses={200: success_schema(UserSerializer)},
     )
     def get(self, request):
         serializer = UserSerializer(
@@ -127,7 +179,7 @@ class UserProfileAPIView(APIView):
     @extend_schema(
         tags=["users"],
         summary="Get current user's profile",
-        responses={200: UserProfileSerializer},
+        responses={200: success_schema(UserProfileSerializer)},
     )
     def get(self, request):
         serializer = UserProfileSerializer(
@@ -145,7 +197,7 @@ class UserProfileAPIView(APIView):
         tags=["users"],
         summary="Update current user's profile",
         request=UserProfileSerializer,
-        responses={200: UserProfileSerializer},
+        responses={200: success_schema(UserProfileSerializer)},
     )
     def patch(self, request):
         serializer = UserProfileSerializer(
@@ -171,6 +223,15 @@ class UserProfileAPIView(APIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        responses={200: success_schema(FavoriteDriverSerializer, many=True)}
+    ),
+    post=extend_schema(
+        request=FavoriteDriverSerializer,
+        responses={201: success_schema(FavoriteDriverSerializer)},
+    ),
+)
 class FavoriteDriverListCreateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -224,6 +285,7 @@ class FavoriteDriverListCreateAPIView(APIView):
         )
 
 
+@extend_schema_view(delete=extend_schema(responses={200: SuccessResponseSerializer}))
 class FavoriteDriverDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -249,6 +311,15 @@ class FavoriteDriverDetailAPIView(APIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        responses={200: success_schema(FavoriteTeamSerializer, many=True)}
+    ),
+    post=extend_schema(
+        request=FavoriteTeamSerializer,
+        responses={201: success_schema(FavoriteTeamSerializer)},
+    ),
+)
 class FavoriteTeamListCreateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -299,6 +370,7 @@ class FavoriteTeamListCreateAPIView(APIView):
         )
 
 
+@extend_schema_view(delete=extend_schema(responses={200: SuccessResponseSerializer}))
 class FavoriteTeamDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -324,6 +396,15 @@ class FavoriteTeamDetailAPIView(APIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        responses={200: success_schema(FavoriteRaceSerializer, many=True)}
+    ),
+    post=extend_schema(
+        request=FavoriteRaceSerializer,
+        responses={201: success_schema(FavoriteRaceSerializer)},
+    ),
+)
 class FavoriteRaceListCreateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -378,6 +459,7 @@ class FavoriteRaceListCreateAPIView(APIView):
         )
 
 
+@extend_schema_view(delete=extend_schema(responses={200: SuccessResponseSerializer}))
 class FavoriteRaceDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -403,6 +485,9 @@ class FavoriteRaceDetailAPIView(APIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(responses={200: success_schema(UserDashboardSerializer)})
+)
 class UserDashboardAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

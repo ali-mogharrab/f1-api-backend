@@ -63,7 +63,6 @@ class ChatView(APIView):
         result = analyze(payload["message"], conversation=conversation)
         with transaction.atomic():
             if conversation:
-                # Optimistic concurrency: never hold a DB lock during network IO.
                 changed = Conversation.objects.filter(
                     pk=conversation.pk, user=request.user, revision=revision
                 ).update(

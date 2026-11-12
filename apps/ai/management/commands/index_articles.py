@@ -27,7 +27,6 @@ class Command(BaseCommand):
                 self.stdout.write(f"{article.pk}: {result}")
             except (ProviderTimeout, ProviderUnavailable, ValueError):
                 counts["errors"] += 1
-                # Do not log article text, provider bodies, or credentials.
                 self.stderr.write(
                     f"{article.pk}: indexing failed; check provider/configuration and rerun."
                 )

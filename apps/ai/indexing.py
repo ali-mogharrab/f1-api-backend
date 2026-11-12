@@ -20,8 +20,6 @@ def prune_documents():
 
 
 def index_article(article, *, provider=None, force=False):
-    # Service callers, as well as the management command, must never send drafts
-    # or scheduled articles to the embedding provider.
     if not published_articles().filter(pk=article.pk).exists():
         ArticleDocument.objects.filter(article_id=article.pk).delete()
         return "removed"
@@ -44,8 +42,7 @@ def index_article(article, *, provider=None, force=False):
     for start in range(0, len(chunks), settings.RAG_EMBEDDING_BATCH_SIZE):
         batch = chunks[start : start + settings.RAG_EMBEDDING_BATCH_SIZE]
         vectors.extend(validate_embeddings(provider.embed(batch), len(batch)))
-    # Network work happens before the short database transaction. Recheck the
-    # publication state and fingerprint under a row lock before replacing chunks.
+
     with transaction.atomic():
         current = (
             article_queryset()

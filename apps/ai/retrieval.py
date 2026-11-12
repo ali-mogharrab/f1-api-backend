@@ -1,5 +1,6 @@
 import heapq
 import math
+import time
 
 from django.conf import settings
 from django.db import connection
@@ -9,6 +10,7 @@ from pgvector.django import CosineDistance
 from apps.content.models import Tag
 
 from .documents import embedding_profile, extract_article, published_articles
+from .exceptions import ProviderTimeout
 from .models import ArticleChunk
 from .providers import embedding_provider, validate_embeddings
 
@@ -48,6 +50,17 @@ def retrieve_articles(
     timeout=None,
 ):
     """Exact cosine search on both backends. No document embeddings at request time."""
+    deadline = time.monotonic() + timeout if timeout is not None else None
+
+    def remaining_time():
+        if deadline is None:
+            return None
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ProviderTimeout()
+        return remaining
+
+    remaining_time()
     queryset = eligible_chunks()
     for key, value in {
         "related_team": team,
@@ -63,7 +76,10 @@ def retrieve_articles(
             "coverage": "No indexed published articles match. Run index_articles after publishing.",
         }
     provider = provider or embedding_provider()
-    vector = validate_embeddings(provider.embed([query], timeout=timeout), 1)[0]
+    vector = validate_embeddings(provider.embed([query], timeout=remaining_time()), 1)[
+        0
+    ]
+    remaining_time()
     if connection.vendor == "postgresql":
         candidates = (
             queryset.annotate(
@@ -94,12 +110,12 @@ def retrieve_articles(
 
     def valid_candidates():
         for score, chunk in scored:
+            remaining_time()
             if score < settings.RAG_MIN_SIMILARITY:
                 continue
             article = chunk.document.article
             if article.pk not in fingerprints:
                 fingerprints[article.pk] = extract_article(article)[2]
-            # Changes are excluded immediately, even before the next indexing run.
             if fingerprints[article.pk] != chunk.document.fingerprint:
                 continue
             yield score, chunk
@@ -111,6 +127,7 @@ def retrieve_articles(
         return score, str(chunk.id)
 
     best = heapq.nlargest(settings.RAG_TOP_K, valid_candidates(), key=rank)
+    remaining_time()
     data, sources = [], []
     for score, chunk in best:
         article = chunk.document.article

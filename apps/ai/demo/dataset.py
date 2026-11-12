@@ -32,8 +32,6 @@ def prepare_demo_database():
         raise CommandError(
             "Refusing to modify a database outside the configured isolated demo path."
         )
-    # Read existing files in read-only mode before any migration or fixture write.
-    # An unrelated database cannot be silently adopted as demonstration data.
     if path.exists() and path.stat().st_size:
         try:
             with closing(

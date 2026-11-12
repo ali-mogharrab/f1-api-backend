@@ -1,4 +1,4 @@
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -17,6 +17,19 @@ from apps.core.responses import error_response, success_response
 from apps.core.views import BaseListCreateAPIView, BaseRetrieveUpdateDestroyAPIView
 
 
+def visible_article_count(user):
+    if user.is_authenticated and user.is_staff:
+        return Count("articles", distinct=True)
+    return Count(
+        "articles",
+        filter=Q(
+            articles__status=Article.ArticleStatus.PUBLISHED,
+            articles__published_at__lte=timezone.now(),
+        ),
+        distinct=True,
+    )
+
+
 class CategoryListCreateAPIView(BaseListCreateAPIView):
     model = Category
     serializer_class = CategorySerializer
@@ -27,7 +40,7 @@ class CategoryListCreateAPIView(BaseListCreateAPIView):
 
     def get_queryset(self):
         return super().get_queryset().annotate(
-            articles_count=Count("articles")
+            articles_count=visible_article_count(self.request.user)
         )
 
 
@@ -37,7 +50,7 @@ class CategoryDetailAPIView(BaseRetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return super().get_queryset().annotate(
-            articles_count=Count("articles")
+            articles_count=visible_article_count(self.request.user)
         )
 
 
@@ -51,7 +64,7 @@ class TagListCreateAPIView(BaseListCreateAPIView):
 
     def get_queryset(self):
         return super().get_queryset().annotate(
-            articles_count=Count("articles")
+            articles_count=visible_article_count(self.request.user)
         )
 
 
@@ -61,11 +74,12 @@ class TagDetailAPIView(BaseRetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return super().get_queryset().annotate(
-            articles_count=Count("articles")
+            articles_count=visible_article_count(self.request.user)
         )
 
 
 class ArticleListCreateAPIView(BaseListCreateAPIView):
+    write_response_serializer_class = ArticleDetailSerializer
     model = Article
     serializer_class = ArticleListSerializer
     filterset_fields = [
@@ -147,6 +161,7 @@ class ArticleListCreateAPIView(BaseListCreateAPIView):
 
 
 class ArticleDetailAPIView(BaseRetrieveUpdateDestroyAPIView):
+    write_response_serializer_class = ArticleDetailSerializer
     model = Article
     serializer_class = ArticleDetailSerializer
 
@@ -251,6 +266,8 @@ class ArticleDetailAPIView(BaseRetrieveUpdateDestroyAPIView):
 
 
 class ArticleSlugDetailAPIView(ArticleDetailAPIView):
+    http_method_names = ["get", "head", "options"]
+
     def get_object(self, slug):
         return get_object_or_404(
             self.get_queryset(),
@@ -276,6 +293,8 @@ class ArticleSlugDetailAPIView(ArticleDetailAPIView):
 
 
 class FeaturedArticleListAPIView(BaseListCreateAPIView):
+    http_method_names = ["get", "head", "options"]
+
     model = Article
     serializer_class = ArticleListSerializer
     filterset_fields = [

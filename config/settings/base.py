@@ -196,16 +196,33 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "DriverStatusEnum": "apps.racing.models.Driver.DriverStatus",
+        "RaceStatusEnum": "apps.racing.models.Race.RaceStatus",
+        "ResultStatusEnum": "apps.racing.models.RaceResult.ResultStatus",
+        "ArticleStatusEnum": "apps.content.models.Article.ArticleStatus",
+    },
     "SCHEMA_PATH_PREFIX": "/api/",
     "TAGS": [
         {"name": "users", "description": "Authentication, profiles, and favorites."},
-        {"name": "racing", "description": "Formula 1 seasons, teams, drivers, circuits, races, and results."},
-        {"name": "standings", "description": "Driver and constructor championship standings."},
-        {"name": "content", "description": "Categories, tags, and articles/news content."},
+        {
+            "name": "racing",
+            "description": "Formula 1 seasons, teams, drivers, circuits, races, and results.",
+        },
+        {
+            "name": "standings",
+            "description": "Driver and constructor championship standings.",
+        },
+        {
+            "name": "content",
+            "description": "Categories, tags, and articles/news content.",
+        },
     ],
 }
 
 SIMPLE_JWT = {
+    "CHECK_REVOKE_TOKEN": True,
+    "TOKEN_REFRESH_SERIALIZER": "apps.users.serializers.AccountTokenRefreshSerializer",
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": False,
@@ -233,6 +250,12 @@ AI_CONTEXT_MAX_CHARS = 24000
 AI_TOOL_RESULT_MAX_CHARS = 24000
 AI_CONVERSATION_MAX_MESSAGES = 100
 AI_THROTTLE_RATE = config("AI_THROTTLE_RATE", default="10/hour")
+AUTH_THROTTLE_RATES = {
+    "login": config("AUTH_LOGIN_RATE", default="10/minute"),
+    "registration": config("AUTH_REGISTRATION_RATE", default="10/hour"),
+    "password_reset": config("AUTH_PASSWORD_RESET_RATE", default="10/hour"),
+    "token_refresh": config("AUTH_REFRESH_RATE", default="60/minute"),
+}
 RAG_TOP_K = config("RAG_TOP_K", default=5, cast=int)
 RAG_MIN_SIMILARITY = config("RAG_MIN_SIMILARITY", default=0.3, cast=float)
 RAG_CHUNK_SIZE = config("RAG_CHUNK_SIZE", default=1200, cast=int)

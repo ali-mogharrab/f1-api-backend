@@ -217,16 +217,23 @@ The screenshots below show example API requests tested with Postman.
 
 ## Local Development
 
+Use Python 3.12+ and an isolated virtual environment. Set
+`DJANGO_SETTINGS_MODULE=config.settings.development` explicitly for local work;
+the example environment file also contains deployment settings.
+
 Install dependencies:
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements/development.txt
 ```
 
 Create an environment file from the example:
 
 ```bash
-cp .env.example .env
+cp -n .env.example .env
+export DJANGO_SETTINGS_MODULE=config.settings.development
 ```
 
 Run migrations:
@@ -248,5 +255,35 @@ python manage.py runserver
 ```
 
 ## Notes
+
+### Verification and account security
+
+```bash
+DEBUG=False OPENAI_API_KEY='' python manage.py test --settings=config.settings.test
+DEBUG=False python manage.py check --settings=config.settings.test
+DEBUG=False python manage.py makemigrations --check --dry-run --settings=config.settings.test
+DEBUG=False python manage.py spectacular --validate --fail-on-warn --file /tmp/f1-schema.yml --settings=config.settings.test
+```
+
+Tests use a separate in-memory SQLite database and mocked OpenAI transport or
+explicit offline providers. The PostgreSQL CI job must pass separately; a SQLite
+run does not verify pgvector behavior.
+
+Password changes and resets invalidate previously issued access and refresh
+tokens. This also means tokens issued before enabling password-bound JWT claims
+require a fresh login. Deleted/inactive users cannot refresh a session. Public
+login, registration, password-reset, and refresh endpoints have separate per-IP
+limits (`AUTH_LOGIN_RATE`, `AUTH_REGISTRATION_RATE`, `AUTH_PASSWORD_RESET_RATE`,
+`AUTH_REFRESH_RATE`). They share the configurable `ai` cache. Configure a shared
+cache and trusted proxy handling before using multiple production workers;
+application throttles do not replace gateway abuse limits.
+
+Historical completed races before today may use the race-time team; past-season
+standings may use the season team. Current/future race records and current-season
+standing snapshots retain the existing current-team validation. The database
+does not contain a complete driver contract/team-membership timeline.
+
+See the [independent review and verification report](docs/review-2026-11-11.md)
+for the reviewed scope, fixes, commands, and remaining deployment limitations.
 
 This repository contains the backend API for the Formula 1 web application. It is designed to pair with a React frontend and focuses on providing clean, structured data for race information, standings, personalized user features, and F1-related editorial content.

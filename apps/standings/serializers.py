@@ -71,6 +71,14 @@ class DriverStandingSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         driver = attrs.get("driver", getattr(self.instance, "driver", None))
         team = attrs.get("team", getattr(self.instance, "team", None))
+        season = attrs.get("season", getattr(self.instance, "season", None))
+        if season and season.is_current and driver and team and driver.current_team_id:
+            if driver.current_team_id != team.pk:
+                raise serializers.ValidationError(
+                    {
+                        "team": "Team must match the driver's current team for a current-season snapshot."
+                    }
+                )
         points = attrs.get("points", getattr(self.instance, "points", 0))
         position = attrs.get("position", getattr(self.instance, "position", None))
 
@@ -87,14 +95,6 @@ class DriverStandingSerializer(serializers.ModelSerializer):
                     "points": "Points cannot be negative."
                 }
             )
-
-        if driver and team and driver.current_team_id:
-            if driver.current_team_id != team.id:
-                raise serializers.ValidationError(
-                    {
-                        "team": "Team must match the driver's current team."
-                    }
-                )
 
         return attrs
 

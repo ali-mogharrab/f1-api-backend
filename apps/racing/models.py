@@ -1,7 +1,22 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import BaseModel
+
+
+def validate_result_team(driver, team, race):
+    """Current-team validation cannot establish historical race membership."""
+    historical = (
+        race is not None
+        and race.status == Race.RaceStatus.COMPLETED
+        and race.race_date < timezone.localdate()
+    )
+    if not historical and driver and team and driver.current_team_id:
+        if driver.current_team_id != team.pk:
+            raise ValidationError(
+                {"team": "Team must match the driver's current team."}
+            )
 
 
 class Season(BaseModel):
@@ -314,6 +329,8 @@ class RaceResult(BaseModel):
         ]
 
     def clean(self):
+        if self.driver_id and self.team_id and self.race_id:
+            validate_result_team(self.driver, self.team, self.race)
         errors = {}
 
         if self.position is not None and self.position < 1:
@@ -327,10 +344,6 @@ class RaceResult(BaseModel):
 
         if self.points < 0:
             errors["points"] = "Points cannot be negative."
-
-        if self.driver_id and self.team_id and self.driver.current_team_id:
-            if self.driver.current_team_id != self.team_id:
-                errors["team"] = "Team must match the driver's current team."
 
         if errors:
             raise ValidationError(errors)
@@ -387,14 +400,12 @@ class QualifyingResult(BaseModel):
         ]
 
     def clean(self):
+        if self.driver_id and self.team_id and self.race_id:
+            validate_result_team(self.driver, self.team, self.race)
         errors = {}
 
         if self.position is not None and self.position < 1:
             errors["position"] = "Position must be greater than or equal to 1."
-
-        if self.team_id and self.driver_id and self.driver.current_team_id:
-            if self.driver.current_team_id != self.team_id:
-                errors["team"] = "Team must match the driver's current team."
 
         if errors:
             raise ValidationError(errors)
@@ -473,6 +484,8 @@ class SprintResult(BaseModel):
         ]
 
     def clean(self):
+        if self.driver_id and self.team_id and self.race_id:
+            validate_result_team(self.driver, self.team, self.race)
         errors = {}
 
         if self.position is not None and self.position < 1:
@@ -483,10 +496,6 @@ class SprintResult(BaseModel):
 
         if self.points < 0:
             errors["points"] = "Points cannot be negative."
-
-        if self.team_id and self.driver_id and self.driver.current_team_id:
-            if self.driver.current_team_id != self.team_id:
-                errors["team"] = "Team must match the driver's current team."
 
         if errors:
             raise ValidationError(errors)

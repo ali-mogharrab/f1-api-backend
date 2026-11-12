@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
+from django.core.cache import caches
 from django.test import override_settings
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -17,6 +18,7 @@ User = get_user_model()
 
 class UsersAPITests(APITestCase):
     def setUp(self):
+        caches["ai"].clear()
         self.user = User.objects.create_user(
             username="ali",
             email="ali@example.com",

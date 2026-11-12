@@ -47,6 +47,14 @@ class Answer(BaseModel):
     insufficient_evidence: bool
 
 
+class FunctionCall(BaseModel):
+    model_config = ConfigDict(strict=True)
+    type: str
+    name: str = Field(min_length=1, max_length=100)
+    arguments: str = Field(max_length=5000)
+    call_id: str = Field(min_length=1, max_length=200)
+
+
 @dataclass
 class Analysis:
     answer: str
@@ -67,7 +75,6 @@ def build_context(conversation, message):
             history.append({"role": row.role, "content": row.content})
             budget -= len(row.content)
     history.reverse()
-    # Never start the history with an orphan assistant reply.
     if history and history[0]["role"] == "assistant":
         history.pop(0)
     return history + [{"role": "user", "content": message}]
@@ -86,7 +93,6 @@ def analyze(message, *, conversation=None, provider=None):
         SYSTEM_INSTRUCTIONS
         + f"\nServer date (UTC): {timezone.now().date().isoformat()}."
     )
-    # At most N tool invocations plus one final generation. No provider retries.
     for step in range(settings.AI_MAX_TOOL_CALLS + 1):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -103,7 +109,21 @@ def analyze(message, *, conversation=None, provider=None):
             raise ProviderTimeout()
         input_tokens += response.input_tokens
         output_tokens += response.output_tokens
-        calls = [item for item in response.items if item["type"] == "function_call"]
+        try:
+            if not isinstance(response.items, list) or any(
+                not isinstance(item, dict) or not isinstance(item.get("type"), str)
+                for item in response.items
+            ):
+                raise ValueError
+            calls = [
+                FunctionCall.model_validate(item).model_dump()
+                for item in response.items
+                if item["type"] == "function_call"
+            ]
+        except (ValueError, TypeError):
+            raise ProviderUnavailable(
+                "The AI provider returned an invalid tool call."
+            ) from None
         if not calls:
             try:
                 answer = Answer.model_validate_json(response.text)
@@ -113,7 +133,6 @@ def analyze(message, *, conversation=None, provider=None):
                 ) from None
             cited = list(dict.fromkeys(answer.source_ids))
             inline = re.findall(r"\[([a-z_]+:[^\[\]\s]+)\]", answer.answer)
-            # References and links are verified independently of model output.
             invalid = (
                 any(pk not in sources for pk in cited + inline)
                 or set(inline) != set(cited)
@@ -121,6 +140,8 @@ def analyze(message, *, conversation=None, provider=None):
             )
             if not invalid:
                 invalid = not sources_still_valid([sources[pk] for pk in cited])
+            if time.monotonic() >= deadline:
+                raise ProviderTimeout()
             if not cited or invalid:
                 return Analysis(
                     NO_EVIDENCE,
@@ -137,7 +158,14 @@ def analyze(message, *, conversation=None, provider=None):
                 )
             return Analysis(
                 answer.answer,
-                [sources[pk] for pk in cited],
+                [
+                    {
+                        key: value
+                        for key, value in sources[pk].items()
+                        if not key.startswith("_")
+                    }
+                    for pk in cited
+                ],
                 {
                     "insufficient_evidence": answer.insufficient_evidence,
                     "tool_calls": called,
@@ -147,7 +175,7 @@ def analyze(message, *, conversation=None, provider=None):
                     **mode_metadata,
                 },
             )
-        # Parallel calls are disabled at the provider; fail closed on violations.
+
         if len(calls) != 1 or final:
             raise ProviderUnavailable(
                 "The AI provider exceeded the tool-call protocol."
@@ -164,7 +192,7 @@ def analyze(message, *, conversation=None, provider=None):
             sources[item["id"]] = item
         messages.extend(
             response.items
-        )  # Includes reasoning items required for continuation.
+        )
         messages.append(
             {
                 "type": "function_call_output",

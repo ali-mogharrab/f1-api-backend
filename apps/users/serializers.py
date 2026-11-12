@@ -3,14 +3,37 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
+from rest_framework_simplejwt.utils import get_md5_hash_password
 
 from apps.users.models import FavoriteDriver, FavoriteRace, FavoriteTeam, UserProfile
 
 
 User = get_user_model()
+
+
+class AccountTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        refresh = self.token_class(attrs["refresh"])
+        try:
+            user = User.objects.get(
+                **{jwt_settings.USER_ID_FIELD: refresh.get(jwt_settings.USER_ID_CLAIM)}
+            )
+        except (User.DoesNotExist, DjangoValidationError, ValueError, TypeError):
+            raise AuthenticationFailed("Invalid or expired session.") from None
+        if not jwt_settings.USER_AUTHENTICATION_RULE(user) or (
+            jwt_settings.CHECK_REVOKE_TOKEN
+            and refresh.get(jwt_settings.REVOKE_TOKEN_CLAIM)
+            != get_md5_hash_password(user.password)
+        ):
+            raise AuthenticationFailed("Invalid or expired session.")
+        return super().validate(attrs)
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -52,7 +75,7 @@ class UserSerializer(serializers.ModelSerializer):
             "date_joined",
         ]
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj) -> str:
         return obj.get_full_name()
 
 
@@ -195,7 +218,13 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         try:
             user_id = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=user_id, is_active=True)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist) as exc:
+        except (
+            TypeError,
+            ValueError,
+            OverflowError,
+            DjangoValidationError,
+            User.DoesNotExist,
+        ) as exc:
             raise serializers.ValidationError(
                 {"token": "Invalid password reset link."}
             ) from exc
@@ -351,3 +380,11 @@ class FavoriteRaceSerializer(serializers.ModelSerializer):
                 )
 
         return race
+
+
+class UserDashboardSerializer(serializers.Serializer):
+    user = UserSerializer()
+    favorites_summary = serializers.DictField(child=serializers.IntegerField())
+    recent_favorite_drivers = FavoriteDriverSerializer(many=True)
+    recent_favorite_teams = FavoriteTeamSerializer(many=True)
+    recent_favorite_races = FavoriteRaceSerializer(many=True)

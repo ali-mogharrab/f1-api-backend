@@ -65,9 +65,19 @@ class DriverStanding(BaseModel):
         if self.points < 0:
             errors["points"] = "Points cannot be negative."
 
-        if self.team_id and self.driver_id and self.driver.current_team_id:
-            if self.driver.current_team_id != self.team_id:
-                errors["team"] = "Team must match the driver's current team."
+        if (
+            self.season_id
+            and self.season.is_current
+            and self.team_id
+            and self.driver_id
+        ):
+            if (
+                self.driver.current_team_id
+                and self.driver.current_team_id != self.team_id
+            ):
+                errors["team"] = (
+                    "Team must match the driver's current team for a current-season snapshot."
+                )
 
         if errors:
             raise ValidationError(errors)

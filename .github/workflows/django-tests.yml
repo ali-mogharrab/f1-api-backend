@@ -16,8 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      OPENAI_API_KEY: ""
       SECRET_KEY: test-secret-key
-      DEBUG: "True"
+      DEBUG: "False"
       ALLOWED_HOSTS: localhost,127.0.0.1
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       CSRF_TRUSTED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
@@ -40,6 +42,11 @@ jobs:
       - name: Run migrations check
         run: python manage.py makemigrations --check --dry-run
 
+      - name: Check application and API schema
+        run: |
+          python manage.py check
+          python manage.py spectacular --validate --fail-on-warn --file /tmp/f1-schema.yml
+
       - name: Run tests
         run: python manage.py test
 
@@ -61,6 +68,8 @@ jobs:
           --health-retries 5
     env:
       DJANGO_SETTINGS_MODULE: config.settings.test_postgres
+      DEBUG: "False"
+      OPENAI_API_KEY: ""
       PGDATABASE: f1_test
       PGUSER: postgres
       PGPASSWORD: postgres

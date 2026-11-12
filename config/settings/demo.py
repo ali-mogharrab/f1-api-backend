@@ -1,5 +1,3 @@
-"""Explicit local-only offline demo; never uses the normal development database."""
-
 from django.core.exceptions import ImproperlyConfigured
 
 from .development import *
@@ -11,7 +9,7 @@ AI_EMBEDDING_PROVIDER = "apps.ai.demo.providers.DemoEmbeddingProvider"
 AI_MODEL = "scripted-demo-v1"
 AI_EMBEDDING_MODEL = "demo-token-hash-v1"
 AI_EMBEDDING_DIMENSIONS = 256
-OPENAI_API_KEY = ""  # Even an inherited credential is unused in this mode.
+OPENAI_API_KEY = "" 
 RAG_MIN_SIMILARITY = 0.1
 RAG_TOP_K = 4
 
@@ -28,7 +26,7 @@ DATABASES = {
         "NAME": AI_DEMO_DATABASE_PATH,
     }
 }
-# Local demo infrastructure must not inherit an external cache/SMTP service.
+
 CACHES = {
     "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
     "ai": {

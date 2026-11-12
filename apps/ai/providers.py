@@ -45,12 +45,18 @@ ANSWER_SCHEMA = {
 
 
 def validate_embeddings(vectors, count):
-    if len(vectors) != count:
+    if not isinstance(vectors, list) or len(vectors) != count:
         raise ProviderUnavailable()
     for vector in vectors:
         if (
-            len(vector) != settings.AI_EMBEDDING_DIMENSIONS
-            or not all(math.isfinite(v) for v in vector)
+            not isinstance(vector, list)
+            or len(vector) != settings.AI_EMBEDDING_DIMENSIONS
+            or not all(
+                type(v) in (int, float)
+                and abs(v) <= 3.402823466e38
+                and math.isfinite(v)
+                for v in vector
+            )
             or not any(vector)
         ):
             raise ProviderUnavailable()
@@ -107,6 +113,8 @@ class OpenAIProvider:
             raise ProviderTimeout() from None
         except openai.APIError:
             raise ProviderUnavailable() from None
+        except (AttributeError, TypeError, ValueError, OverflowError):
+            raise ProviderUnavailable() from None
 
     def embed(self, texts, *, timeout=None):
         try:
@@ -116,6 +124,8 @@ class OpenAIProvider:
                     input=texts,
                     dimensions=settings.AI_EMBEDDING_DIMENSIONS,
                 )
+            if sorted(item.index for item in response.data) != list(range(len(texts))):
+                raise ProviderUnavailable()
             vectors = [
                 item.embedding
                 for item in sorted(response.data, key=lambda item: item.index)
@@ -124,6 +134,8 @@ class OpenAIProvider:
         except openai.APITimeoutError:
             raise ProviderTimeout() from None
         except openai.APIError:
+            raise ProviderUnavailable() from None
+        except (AttributeError, TypeError, ValueError, OverflowError):
             raise ProviderUnavailable() from None
 
 

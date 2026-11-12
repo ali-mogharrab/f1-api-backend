@@ -57,8 +57,6 @@ class ArticleChunk(BaseModel):
     )
     ordinal = models.PositiveIntegerField()
     text = models.TextField()
-    # Unconstrained dimensions allow provider changes without a schema migration.
-    # The document profile isolates models/dimensions/chunking configurations.
     embedding = VectorField()
     metadata = models.JSONField(default=dict)
 

@@ -1,11 +1,11 @@
 from django.urls import path
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
     TokenVerifyView,
 )
 
 from apps.users.views import (
+    LoginView,
+    RefreshView,
     CurrentUserAPIView,
     FavoriteDriverDetailAPIView,
     FavoriteDriverListCreateAPIView,
@@ -77,12 +77,12 @@ urlpatterns = [
     ),
     path(
         "token/",
-        TokenObtainPairView.as_view(),
+        LoginView.as_view(),
         name="token-obtain-pair",
     ),
     path(
         "token/refresh/",
-        TokenRefreshView.as_view(),
+        RefreshView.as_view(),
         name="token-refresh",
     ),
     path(

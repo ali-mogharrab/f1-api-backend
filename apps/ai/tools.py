@@ -12,6 +12,7 @@ from apps.racing.models import Driver, Race, RaceResult, Season, Team
 from apps.standings.models import ConstructorStanding, DriverStanding
 
 from .exceptions import ToolInputError
+from .citations import structured_fingerprint
 from .retrieval import retrieve_articles
 
 
@@ -144,6 +145,7 @@ def source(record, kind, title, path):
         "entity_id": str(record.pk),
         "title": title,
         "api_url": f"/api/{path}/{record.pk}/",
+        "_fingerprint": structured_fingerprint(record),
     }
 
 
@@ -281,7 +283,7 @@ def get_team_recent_results(args, **kwargs):
 def get_driver_standings(args, **kwargs):
     season = resolve_season(args.season)
     query = DriverStanding.objects.filter(season=season).select_related(
-        "driver", "team"
+        "driver", "team", "season"
     )
     if args.driver:
         query = query.filter(driver=resolve_entity(Driver, args.driver))
@@ -319,7 +321,9 @@ def get_driver_standings(args, **kwargs):
 
 def get_constructor_standings(args, **kwargs):
     season = resolve_season(args.season)
-    query = ConstructorStanding.objects.filter(season=season).select_related("team")
+    query = ConstructorStanding.objects.filter(season=season).select_related(
+        "team", "season"
+    )
     if args.team:
         query = query.filter(team=resolve_entity(Team, args.team))
     rows = list(query.order_by("position", "id")[:100])
@@ -420,12 +424,12 @@ def execute_tool(name, arguments, *, timeout=None):
         return {"data": [], "sources": [], "error": "Unknown read-only tool."}
     schema, function, _ = REGISTRY[name]
     try:
-        if len(arguments) > 5000:
+        if not isinstance(arguments, str) or len(arguments) > 5000:
             raise ToolInputError("Tool arguments exceed the size limit.")
         payload = json.loads(arguments)
         args = schema.model_validate(payload)
         return function(args, timeout=timeout)
-    except (json.JSONDecodeError, ValidationError):
+    except (json.JSONDecodeError, ValidationError, RecursionError):
         return {
             "data": [],
             "sources": [],
